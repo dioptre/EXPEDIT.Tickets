@@ -156,9 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Controllers\UserController.cs" />
-    <Compile Include="Helpers\AUTH_Gmail_OAuth1_3leg.cs" />
     <Compile Include="Helpers\ConstantsHelper.cs" />
-    <Compile Include="Helpers\Program.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="Services\ITicketsService.cs" />
     <Compile Include="Services\TicketsService.cs" />
