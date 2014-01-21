@@ -23,5 +23,8 @@ namespace EXPEDIT.Tickets.Services
          [OperationContract]
          IEnumerable<IHtmlString> GetSearchResults(string text = null, Guid? supplierModelID = null, int? startRowIndex = null, int? pageSize = null);
 
+         [OperationContract]
+         void GetMail();
+
     }
 }

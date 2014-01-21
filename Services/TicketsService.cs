@@ -265,8 +265,7 @@ namespace EXPEDIT.Tickets.Services {
             var mail = new IMAP_Client();
             mail.Logger = new Logger();
             //pop3.Logger.WriteLog += m_pLogCallback;
-            mail.Connect("imap.gmail.com", 587, false);
-            mail.StartTls();
+            mail.Connect("imap.gmail.com", 993, false);
             mail.Login("staff@miningappstore.com", "=652ymQ*");
             IMAP_r_u_List[] folders = mail.GetFolders(null);
 
@@ -316,24 +315,26 @@ namespace EXPEDIT.Tickets.Services {
 
         public void GetMail()
         {
-                
+
+            try
+            {
+                var mail = new IMAP_Client();
+                mail.Logger = new Logger();
+                mail.Logger.WriteLog += (object o, WriteLogEventArgs w) =>
+                {
+                    var y = w;
+                };
+                mail.Connect("imap.gmail.com", 993, true);
+                mail.Login("staff@miningappstore.com", "=652ymQ*");
                 try
                 {
-                    var mail = new IMAP_Client();
-                    mail.Logger = new Logger();
-                    //pop3.Logger.WriteLog += m_pLogCallback;
-                    mail.Connect("imap.gmail.com", 587, false);
-                    mail.StartTls();
-                    mail.Login("staff@miningappstore.com", "=652ymQ*");
-                    try
-                    {
-                        mail.SelectFolder("inbox");
+                    mail.SelectFolder("inbox");
 
-                        // Start fetching.
-                        mail.Fetch(
-                            false,
-                            IMAP_t_SeqSet.Parse("1:*"),
-                            new IMAP_t_Fetch_i[]{
+                    // Start fetching.
+                    mail.Fetch(
+                        false,
+                        IMAP_t_SeqSet.Parse("1:*"),
+                        new IMAP_t_Fetch_i[]{
                         new IMAP_t_Fetch_i_Envelope(),
                         new IMAP_t_Fetch_i_Flags(),
                         new IMAP_t_Fetch_i_InternalDate(),
@@ -342,87 +343,87 @@ namespace EXPEDIT.Tickets.Services {
                         new IMAP_t_Fetch_i_Body(),
                         new IMAP_t_Fetch_i_Rfc822()
                     },
-                            (object sender, EventArgs<IMAP_r_u> e) =>
+                        (object sender, EventArgs<IMAP_r_u> e) =>
+                        {
+                            if (e.Value is IMAP_r_u_Fetch)
                             {
-                                if (e.Value is IMAP_r_u_Fetch)
+                                IMAP_r_u_Fetch fetchResp = (IMAP_r_u_Fetch)e.Value;
+
+                                try
                                 {
-                                    IMAP_r_u_Fetch fetchResp = (IMAP_r_u_Fetch)e.Value;
-
-                                    try
+                                    string from = "";
+                                    if (fetchResp.Envelope.From != null)
                                     {
-                                        string from = "";
-                                        if (fetchResp.Envelope.From != null)
+                                        for (int i = 0; i < fetchResp.Envelope.From.Length; i++)
                                         {
-                                            for (int i = 0; i < fetchResp.Envelope.From.Length; i++)
+                                            // Don't add ; for last item
+                                            if (i == fetchResp.Envelope.From.Length - 1)
                                             {
-                                                // Don't add ; for last item
-                                                if (i == fetchResp.Envelope.From.Length - 1)
-                                                {
-                                                    from += fetchResp.Envelope.From[i].ToString();
-                                                }
-                                                else
-                                                {
-                                                    from += fetchResp.Envelope.From[i].ToString() + ";";
-                                                }
-                                            }
-                                        }
-                                        else
-                                        {
-                                            from = "<none>";
-                                        }
-
-
-                                        Mail_Message mime = Mail_Message.ParseFromStream(fetchResp.Rfc822.Stream);
-                                        fetchResp.Rfc822.Stream.Dispose();
-                                        foreach (MIME_Entity entity in mime.Attachments)
-                                        {
-                                            if (entity.ContentDisposition != null && entity.ContentDisposition.Param_FileName != null)
-                                            {
-                                               // item.Text = entity.ContentDisposition.Param_FileName;
+                                                from += fetchResp.Envelope.From[i].ToString();
                                             }
                                             else
                                             {
-                                                //item.Text = "untitled";
+                                                from += fetchResp.Envelope.From[i].ToString() + ";";
                                             }
                                         }
-
-                                        if (mime.BodyText != null)
-                                        {
-                                            //m_pTabPageMail_MessageText.Text = mime.BodyText;
-                                        }
-
-                                        //currentItem.Text = from;
-
-                                        //currentItem.SubItems.Add(fetchResp.Envelope.Subject != null ? fetchResp.Envelope.Subject : "<none>");
-
-                                        //currentItem.SubItems.Add(fetchResp.InternalDate.Date.ToString("dd.MM.yyyy HH:mm"));
-
-                                        //currentItem.SubItems.Add(((decimal)(fetchResp.Rfc822Size.Size / (decimal)1000)).ToString("f2") + " kb");
-
-                                        //m_pTabPageMail_Messages.Items.Add(currentItem);
-
-                                       /* NOTE: In IMAP message deleting is 2 step operation.
-                                        *  1) You need to mark message deleted, by setting "Deleted" flag.
-                                        *  2) You need to call Expunge command to force server to dele messages physically.
-                                        */
-
-                                        IMAP_t_SeqSet sequence_set = IMAP_t_SeqSet.Parse(fetchResp.UID.UID.ToString());
-                                        mail.StoreMessageFlags(true, sequence_set, IMAP_Flags_SetType.Add, new IMAP_t_MsgFlags(new string[] { IMAP_t_MsgFlags.Deleted }));
-                                        mail.Expunge();
-                                        //currentItem.Tag = fetchResp.UID.UID;
-
                                     }
-                                    catch (Exception ex)
+                                    else
                                     {
-
+                                        from = "<none>";
                                     }
+
+
+                                    Mail_Message mime = Mail_Message.ParseFromStream(fetchResp.Rfc822.Stream);
+                                    fetchResp.Rfc822.Stream.Dispose();
+                                    foreach (MIME_Entity entity in mime.Attachments)
+                                    {
+                                        if (entity.ContentDisposition != null && entity.ContentDisposition.Param_FileName != null)
+                                        {
+                                            // item.Text = entity.ContentDisposition.Param_FileName;
+                                        }
+                                        else
+                                        {
+                                            //item.Text = "untitled";
+                                        }
+                                    }
+
+                                    if (mime.BodyText != null)
+                                    {
+                                        //m_pTabPageMail_MessageText.Text = mime.BodyText;
+                                    }
+
+                                    //currentItem.Text = from;
+
+                                    //currentItem.SubItems.Add(fetchResp.Envelope.Subject != null ? fetchResp.Envelope.Subject : "<none>");
+
+                                    //currentItem.SubItems.Add(fetchResp.InternalDate.Date.ToString("dd.MM.yyyy HH:mm"));
+
+                                    //currentItem.SubItems.Add(((decimal)(fetchResp.Rfc822Size.Size / (decimal)1000)).ToString("f2") + " kb");
+
+                                    //m_pTabPageMail_Messages.Items.Add(currentItem);
+
+                                    /* NOTE: In IMAP message deleting is 2 step operation.
+                                     *  1) You need to mark message deleted, by setting "Deleted" flag.
+                                     *  2) You need to call Expunge command to force server to dele messages physically.
+                                     */
+
+                                    IMAP_t_SeqSet sequence_set = IMAP_t_SeqSet.Parse(fetchResp.UID.UID.ToString());
+                                    mail.StoreMessageFlags(true, sequence_set, IMAP_Flags_SetType.Add, new IMAP_t_MsgFlags(new string[] { IMAP_t_MsgFlags.Deleted }));
+                                    mail.Expunge();
+                                    //currentItem.Tag = fetchResp.UID.UID;
+
+                                }
+                                catch (Exception ex)
+                                {
+
                                 }
                             }
-                        );
-                    }
-                    catch (Exception x)
-                    {
-                    }
+                        }
+                    );
+                }
+                catch (Exception x)
+                {
+                }
             }
             catch (Exception x)
             {

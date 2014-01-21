@@ -229,5 +229,11 @@ namespace EXPEDIT.Tickets.Controllers {
         //    }
         //}
 
+        public ActionResult GetMail()
+        {
+            _Tickets.GetMail();
+            return null;
+        }
+
     }
 }
