@@ -1,0 +1,14 @@
+﻿Name: EXPEDIT Tickets
+AntiForgery: disabled
+Author: The EXPEDIT Team
+Website: http://expedit.com.au
+Version: 1.0
+OrchardVersion: 1.0
+Description: Tickets web module by EXPEDIT.
+Category: Business
+Features:
+    EXPEDIT.Tickets: 
+        Description: Tickets web module by EXPEDIT.
+		Dependencies: Orchard.Email,XODB,Orchard.Media,XmlRpc,Orchard.Search
+		Category: Business
+		Priority: 10
