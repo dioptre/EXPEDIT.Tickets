@@ -324,12 +324,12 @@ namespace EXPEDIT.Tickets.Services {
                 {
                     var y = w;
                 };
-                mail.Connect("imap.gmail.com", 993, true);
-                mail.Login("staff@miningappstore.com", "=652ymQ*");
+                mail.Connect("support.miningappstore.com", 993, true);
+                mail.Login("help@support.miningappstore.com", "help");
                 try
                 {
                     mail.SelectFolder("inbox");
-
+                    
                     // Start fetching.
                     mail.Fetch(
                         false,
@@ -402,14 +402,28 @@ namespace EXPEDIT.Tickets.Services {
 
                                     //m_pTabPageMail_Messages.Items.Add(currentItem);
 
-                                    /* NOTE: In IMAP message deleting is 2 step operation.
-                                     *  1) You need to mark message deleted, by setting "Deleted" flag.
-                                     *  2) You need to call Expunge command to force server to dele messages physically.
-                                     */
-
+                                    //Move file or delete it
                                     IMAP_t_SeqSet sequence_set = IMAP_t_SeqSet.Parse(fetchResp.UID.UID.ToString());
-                                    mail.StoreMessageFlags(true, sequence_set, IMAP_Flags_SetType.Add, new IMAP_t_MsgFlags(new string[] { IMAP_t_MsgFlags.Deleted }));
+                                    Orchard.Email.Models.SmtpSettingsPart smtpSettings = null;
+                                    if (_orchardServices.WorkContext != null)
+                                        smtpSettings = _orchardServices.WorkContext.CurrentSite.As<Orchard.Email.Models.SmtpSettingsPart>();
+                                    if (smtpSettings != null && !string.IsNullOrWhiteSpace(smtpSettings.Address) && from.IndexOf(smtpSettings.Address) >= 0)
+                                    {
+                                        if (!mail.GetFolders("Support").Any())
+                                            mail.CreateFolder("Support");                                        
+                                        mail.MoveMessages(true, sequence_set, "Support", false);
+                                    }
+                                    else
+                                    {
+                                        /* NOTE: In IMAP message deleting is 2 step operation.
+                                         *  1) You need to mark message deleted, by setting "Deleted" flag.
+                                         *  2) You need to call Expunge command to force server to dele messages physically.
+                                         */
+                                        mail.StoreMessageFlags(true, sequence_set, IMAP_Flags_SetType.Add, new IMAP_t_MsgFlags(new string[] { IMAP_t_MsgFlags.Deleted }));
+                                    }
                                     mail.Expunge();
+
+
                                     //currentItem.Tag = fetchResp.UID.UID;
 
                                 }
