@@ -88,6 +88,24 @@ namespace EXPEDIT.Tickets
                         },
                         new MvcRouteHandler())
                 },
+                 new RouteDescriptor {
+                    Priority = 5,
+                    Route = new Route(
+                        "Tickets/{action}",
+                        new RouteValueDictionary {
+                            {"area", "EXPEDIT.Tickets"},
+                            {"controller", "User"}                            
+                        },
+                        new RouteValueDictionary {
+                            {"area", "EXPEDIT.Tickets"},
+                            {"controller", "User"},                          
+                        },
+                        new RouteValueDictionary {
+                            {"area", "EXPEDIT.Tickets"},
+                            {"controller", "User"}
+                        },
+                        new MvcRouteHandler())
+                },
                 new RouteDescriptor {
                         Priority = 5,
                         Route = new Route(

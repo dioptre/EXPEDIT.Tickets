@@ -115,6 +115,9 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Xml.Linq" />
+    <Reference Include="UserAPI">
+      <HintPath>..\..\..\..\lib\LumiSoft.Net\MailServer\Application\Debug\UserAPI.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Web.config" />
@@ -171,6 +174,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Views\User\Index.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\User\UpdateTicket.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\User\Header.cshtml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

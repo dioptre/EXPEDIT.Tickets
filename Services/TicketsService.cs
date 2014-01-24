@@ -39,7 +39,9 @@ using LumiSoft.Net.IMAP.Client;
 using LumiSoft.Net;
 using System.Threading;
 using XODB.Helpers;
+using System.Web.Mvc;
 
+using LumiSoft.MailServer.API.UserAPI;
 
 namespace EXPEDIT.Tickets.Services {
     
@@ -72,191 +74,78 @@ namespace EXPEDIT.Tickets.Services {
         }
 
         public Localizer T { get; set; }
-      
 
-        public string GetRedirect(string routeURL)
-        {
-            try
-            {
-                var application = _users.ApplicationID;
-                using (new TransactionScope(TransactionScopeOption.Suppress))
-                {
-                    var d = new XODBC(_users.ApplicationConnectionString, null, false);
-                    var route = (from o in d.ApplicationRoutes where o.ApplicationID == application && o.RouteURL == routeURL orderby o.Sequence descending select o).FirstOrDefault();
-                    var routeTable = d.GetTableName(route.GetType());
-                    if (route.IsCapturingStatistic.HasValue && route.IsCapturingStatistic.Value)
-                    {
-                        var stat = (from o in d.StatisticDatas
-                                    where o.ReferenceID == route.ApplicationRouteID && o.TableType == routeTable
-                                    && o.StatisticDataName == ConstantsHelper.STAT_NAME_ROUTES
-                                    select o).FirstOrDefault();
-                        if (stat == null)
-                        {
-                            stat = new StatisticData { StatisticDataID = Guid.NewGuid(), TableType = routeTable, ReferenceID = route.ApplicationRouteID, StatisticDataName = ConstantsHelper.STAT_NAME_ROUTES, Count = 0 };
-                            d.StatisticDatas.AddObject(stat);
-                        }
-                        stat.Count++;
-                        d.SaveChanges();
-                    }
-                    if (route.IsExternal.HasValue && route.IsExternal.Value)
-                        return route.RedirectURL;
-                    else
-                        return VirtualPathUtility.ToAbsolute(route.RedirectURL);
-                }
-            }
-            catch
-            {
-                return null;
-            }
-        }
 
-        public FileData GetDownload(string downloadID, string requestIPAddress)
+        public void PrepareTicket(ref TicketsViewModel m)
         {
-            try
-            {        
-                var application = _users.ApplicationID;
-                var contact = _users.ContactID;                
-                var company = _users.ApplicationCompanyID;
-                var server = _users.ServerID;                
-                using (new TransactionScope(TransactionScopeOption.Suppress))
-                {
-                    var d = new XODBC(_users.ApplicationConnectionString, null, false);
-                    var download = (from o in d.Downloads where o.DownloadID==new Guid(downloadID) select o).First();
-                    var downloadTable = d.GetTableName(download.GetType());
-                    if (download.FilterApplicationID.HasValue && download.FilterApplicationID.Value != application)
-                        throw new OrchardSecurityException(T("Application {0} not permitted to download {1}", application, downloadID));
-                    if (download.FilterContactID.HasValue && download.FilterContactID.Value != contact)
-                        throw new OrchardSecurityException(T("Contact {0} not permitted to download {1}", contact, downloadID));
-                    if (download.FilterCompanyID.HasValue && download.FilterCompanyID.Value != company)
-                        throw new OrchardSecurityException(T("Company {0} not permitted to download {1}", company, downloadID));
-                    if (download.FilterServerID.HasValue && download.FilterServerID.Value != company)
-                        throw new OrchardSecurityException(T("Server {0} not permitted to upload {1}", server, downloadID));
-                    if (!string.IsNullOrWhiteSpace(download.FilterClientIP) && string.Format("{0}", requestIPAddress).Trim().ToUpperInvariant() != download.FilterClientIP.Trim().ToUpperInvariant())
-                        throw new OrchardSecurityException(T("IP {0} not permitted to download {1}", requestIPAddress, downloadID));
-                    if (download.RemainingDownloads < 1)
-                        throw new OrchardSecurityException(T("No more remaining downloads for {0}.", downloadID));
-                    if (download.ValidFrom.HasValue && download.ValidFrom.Value > DateTime.Now)
-                        throw new OrchardSecurityException(T("Download {0} not yet valid.", downloadID));
-                    if (download.ValidUntil.HasValue && download.ValidUntil.Value < DateTime.Now)
-                        throw new OrchardSecurityException(T("Download {0} no longer valid.", downloadID));
-                    var stat = (from o in d.StatisticDatas
-                                where o.ReferenceID == download.DownloadID && o.TableType == downloadTable
-                                && o.StatisticDataName == ConstantsHelper.STAT_NAME_DOWNLOADS
-                                select o).FirstOrDefault();
-                    if (stat == null)
-                    {
-                        stat = new StatisticData { StatisticDataID = Guid.NewGuid(), TableType = downloadTable, ReferenceID = download.DownloadID, StatisticDataName = ConstantsHelper.STAT_NAME_DOWNLOADS, Count = 0 };
-                        d.StatisticDatas.AddObject(stat);
-                    }
-                    stat.Count++;
-                    FileData file;
-                    if (!string.IsNullOrWhiteSpace(download.FileChecksum))
-                        file = d.FileDatas.First(f => f.VersionAntecedentID == download.FileDataID && f.FileChecksum == download.FileChecksum); //version aware download
-                    else
-                        file = d.FileDatas.First(f => f.FileDataID == download.FileDataID);
-                    if (file != null)
-                        download.RemainingDownloads--;
-                    d.SaveChanges();
-                    return file;
-                }
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        public FileData GetFile(Guid fileDataID)
-        {
-            try
-            {
-                using (new TransactionScope(TransactionScopeOption.Suppress))
-                {
-                    var d = new XODBC(_users.ApplicationConnectionString, null, false);
-                    var table = d.GetTableName(typeof(FileData));
-                    var root = (from o in d.FileDatas where o.FileDataID == fileDataID && o.Version == 0 && o.VersionDeletedBy == null select new { o.VersionAntecedentID, o.VersionOwnerCompanyID, o.VersionOwnerContactID }).FirstOrDefault(); 
-                    var verified = false;
-                    if (root == null)
-                        return null;
-                    else if (!root.VersionOwnerCompanyID.HasValue && !root.VersionOwnerContactID.HasValue)
-                        verified = true;
-                    else if (root.VersionAntecedentID.HasValue)
-                        verified = _users.CheckPermission(new SecuredBasic
-                        {
-                            AccessorApplicationID = _users.ApplicationID,
-                            AccessorContactID = _users.ContactID,
-                            OwnerReferenceID = root.VersionAntecedentID.Value,
-                            OwnerTableType = table
-                        }, XODB.Models.ActionPermission.Read);
-                    else
-                        verified = _users.CheckPermission(new SecuredBasic
-                        {
-                            AccessorApplicationID = _users.ApplicationID,
-                            AccessorContactID = _users.ContactID,
-                            OwnerReferenceID = fileDataID,
-                            OwnerTableType = table
-                        }, XODB.Models.ActionPermission.Read);
-                    if (!verified)
-                        throw new AuthorityException(string.Format("Can not download file: {0} Unauthorised access by contact: {1}", fileDataID, _users.ContactID));                  
-                    var stat = (from o in d.StatisticDatas
-                                where o.ReferenceID == fileDataID && o.TableType == table
-                                && o.StatisticDataName == ConstantsHelper.STAT_NAME_DOWNLOADS
-                                select o).FirstOrDefault();
-                    if (stat == null)
-                    {
-                        stat = new StatisticData { StatisticDataID = Guid.NewGuid(), TableType = table, ReferenceID = fileDataID, StatisticDataName = ConstantsHelper.STAT_NAME_DOWNLOADS, Count = 0 };
-                        d.StatisticDatas.AddObject(stat);
-                    }
-                    stat.Count++;
-                    d.SaveChanges();
-                    var file = (from o in d.FileDatas where o.FileDataID == fileDataID && o.Version == 0 && o.VersionDeletedBy == null select o).Single(); 
-                    return file;
-                }
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Returns search within XODB. Only search products for now.
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="supplierModelID"></param>
-        /// <param name="startRowIndex"></param>
-        /// <param name="pageSize"></param>
-        /// <returns></returns>
-        public IEnumerable<IHtmlString> GetSearchResults(string text = null, Guid? supplierModelID = null, int? startRowIndex = null, int? pageSize = null)
-        {
-            var contact = _users.ContactID;
+            if (m == null)
+                throw new Exception("Invalid Ticket Object");
+            var supplier = _users.ApplicationCompanyID;
             var application = _users.ApplicationID;
-            var directory = _media.GetPublicUrl(@"EXPEDIT.Transactions");
+            var contact = _users.GetContact(_users.Username);
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
                 var d = new XODBC(_users.ApplicationConnectionString, null);
-                var verified = new System.Data.Objects.ObjectParameter("verified", typeof(int));
-                var found = new System.Data.Objects.ObjectParameter("found", typeof(int));
-                return (from o in d.E_SP_GetSecuredSearch(text, contact, application, null, startRowIndex, pageSize, verified, found)
-                        select GetSearchResultShape(new TicketsViewModel
-                        {
-                            ReferenceID = o.ReferenceID,
-                            TableType = o.TableType,
-                            Title = o.Title,
-                            Description = o.Description,
-                            Sequence = o.Row,
-                            Total = o.TotalRows,
-                            UrlInternal = o.InternalURL
-                        })
-                       ).ToArray();
+                
+                if (m.CommunicationID.HasValue)
+                {
+                    var id = m.CommunicationID;
+                    var tx = (from o in d.Communications where o.CommunicationID==id && o.Version == 0 && o.VersionDeletedBy == null select o).FirstOrDefault();
+                    m.RegardingWorkTypeID = tx.RegardingWorkTypeID;
+                    m.StatusWorkTypeID = tx.StatusWorkTypeID;
+                    m.CommunicationRegardingData = (from o in d.CommunicationRegardingDatas where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id && o.ReferenceID!=null select o)
+                       .ToDictionary((f)=>f.CommunicationRegardingDataID, (e) => new TicketRegarding { ReferenceID = e.ReferenceID.Value, TableType = e.TableType, Description = e.ReferenceName });
+                    m.CommunicationEmail = tx.CommunicationEmail;
+                    m.CommunicationMobile = tx.CommunicationMobile;
+                    m.CommunicationEmailsAdditional = (from o in d.CommunicationEmails where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id select o)
+                        .ToDictionary((f) => f.CommunicationEmailID, (e) => new Tuple<Guid?, string>(e.ContactID.Value, e.CommunicationEmail));
+                }
+                else
+                {
+                    m.CommunicationID = Guid.NewGuid();
+                    m.OpenedBy = contact.ContactID;
+                }
+                m.CommunicationContactID = contact.ContactID;
+                m.CommunicationEmail = contact.DefaultEmail;
+                m.CommunicationMobile = contact.DefaultMobile;
+                
+
+                //Fill Select Lists
+                var allRegarding = (from o in d.E_SP_GetSupportItems(null, application, supplier, ConstantsHelper.DEVICE_TYPE_SOFTWARE, null, null, null)
+                           select new SelectListItem
+                           {
+                               Value = string.Format("[{0}][{1}]", o.ReferenceID, o.TableType),
+                               Text = o.Description
+                           });
+                m.SlRegarding = new SelectList(allRegarding.ToArray(), "Value", "Text");
+
+                var allStatusWT = (from o in d.DictionaryWorkTypeRelations
+                                   where
+                                       o.Version == 0 && o.VersionDeletedBy == null
+                                       && o.ParentWorkTypeID == ConstantsHelper.WORK_TYPE_SUPPORT_STATUS
+                                   select new { o.WorkTypeID, o.WorkType.WorkTypeName }).AsEnumerable().Select(f =>
+                                     new SelectListItem
+                                    {
+                                        Value = string.Format("{0}", f.WorkTypeID),
+                                        Text = f.WorkTypeName
+                                    });
+                m.SlWorkTypesStatus = new SelectList(allStatusWT.ToArray(), "Value", "Text");
+
+                var allRegardingWT = (from o in d.DictionaryWorkTypeRelations
+                                      where
+                                          o.Version == 0 && o.VersionDeletedBy == null
+                                          && o.ParentWorkTypeID == ConstantsHelper.WORK_TYPE_SUPPORT_REGARDING
+                                      select new { o.WorkTypeID, o.WorkType.WorkTypeName }).AsEnumerable().Select(f =>
+                                     new SelectListItem
+                                     {
+                                         Value = string.Format("{0}", f.WorkTypeID),
+                                         Text = f.WorkTypeName
+                                     });
+                m.SlWorkTypesRegarding = new SelectList(allRegardingWT.ToArray(), "Value", "Text");
+
+ 
             }
-        }
 
-
-        [Shape]
-        public IHtmlString GetSearchResultShape(TicketsViewModel model)
-        {
-            return new HtmlString(string.Format("<a href='/Tickets/go/{0}'><h2>{1}</h2>{2}</a>", model.UrlInternal, model.Title, model.Description)); //TODO:Extend search different object types
         }
 
 

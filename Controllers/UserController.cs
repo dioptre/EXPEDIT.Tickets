@@ -23,6 +23,7 @@ using Orchard.ContentManagement;
 using System.Collections.Generic;
 using System.Linq;
 using Orchard.Mvc;
+using EXPEDIT.Tickets.ViewModels;
 
 namespace EXPEDIT.Tickets.Controllers {
     
@@ -233,6 +234,21 @@ namespace EXPEDIT.Tickets.Controllers {
         {
             _Tickets.GetMail();
             return null;
+        }
+
+        [Authorize]
+        [HttpGet]
+        public ActionResult UpdateTicket(string id)
+        {
+            TicketsViewModel m = null;
+            Guid guid;
+            if (Guid.TryParse(id, out guid))
+                m = new TicketsViewModel { CommunicationID = guid };
+            else
+                m = new TicketsViewModel { CommunicationID = null };
+            _Tickets.PrepareTicket(ref m);
+                
+            return View(m);
         }
 
     }
