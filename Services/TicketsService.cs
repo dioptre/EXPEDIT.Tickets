@@ -86,7 +86,7 @@ namespace EXPEDIT.Tickets.Services {
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
                 var d = new XODBC(_users.ApplicationConnectionString, null);
-                
+                var table = d.GetTableName<Communication>();
                 if (m.CommunicationID.HasValue)
                 {
                     var id = m.CommunicationID;
@@ -99,6 +99,10 @@ namespace EXPEDIT.Tickets.Services {
                     m.CommunicationMobile = tx.CommunicationMobile;
                     m.CommunicationEmailsAdditional = (from o in d.CommunicationEmails where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id select o)
                         .ToDictionary((f) => f.CommunicationEmailID, (e) => new Tuple<Guid?, string>(e.ContactID.Value, e.CommunicationEmail));
+                    m.OldComments = (from o in d.Communications where o.CommunicationID == id && o.Version != 0 && o.VersionDeletedBy == null select o.Comment).ToList();
+                    m.OldFiles = (from o in d.FileDatas
+                                  where o.Version == 0 && o.VersionDeletedBy == null && o.TableType == table && o.ReferenceID == id
+                                  select new Tuple<Guid, string>(o.FileDataID, o.FileName)).ToList();
                 }
                 else
                 {

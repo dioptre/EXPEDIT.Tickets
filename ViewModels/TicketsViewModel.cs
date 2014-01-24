@@ -36,6 +36,7 @@ namespace EXPEDIT.Tickets.ViewModels
         public decimal Probability { get; set; }
         public string Comment { get; set; }
         public List<string> OldComments { get; set; }
+        public List<Tuple<Guid,string>> OldFiles { get; set; }
         public Dictionary<Guid,Tuple<Guid?,string>> CommunicationEmailsAdditional { get; set; }
         public Dictionary<Guid, TicketRegarding> CommunicationRegardingData { get; set; } //ReferenceID, TableType
         public SelectList SlWorkTypesRegarding { get; set; }
