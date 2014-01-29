@@ -55,6 +55,8 @@ namespace EXPEDIT.Tickets.Services
         private readonly IScheduledTaskManager _taskManager;
         private readonly IConcurrentTaskService _concurrentTasks;
         private readonly IOrchardServices _services;
+        private readonly ITicketsService _tickets;
+        private readonly IUsersService _users;
         public ILogger Logger { get; set; }
 
         public MailTicketsService(
@@ -62,7 +64,8 @@ namespace EXPEDIT.Tickets.Services
             IScheduledTaskManager taskManager,
             IConcurrentTaskService concurrentTasks,
             IOrchardServices services,
-            ITicketsService tickets)
+            ITicketsService tickets,
+            IUsersService users)
         {
             _contentManager = contentManager;
             _taskManager = taskManager;
@@ -70,6 +73,8 @@ namespace EXPEDIT.Tickets.Services
             Logger = NullLogger.Instance;
             _concurrentTasks = concurrentTasks;
             _services = services;
+            _tickets = tickets;
+            _users = users;
         }
 
         public Localizer T { get; set; }
@@ -231,6 +236,42 @@ namespace EXPEDIT.Tickets.Services
                                     }
                                     else
                                     {
+                                        var contactID = _users.GetEmailContactID(from, false);
+                                        if (contactID != null)
+                                        {
+                                            using (new TransactionScope(TransactionScopeOption.Suppress))
+                                            {
+                                                var d = new XODBC(_users.ApplicationConnectionString, null);
+
+                                                //--Despatch to new Ticket and delete--
+                                                //to help -> new ticket
+                                                var isNew = true;
+                                                Guid id = default(Guid);
+                                                Communication c = null;
+                                                foreach (var to in fetchResp.Envelope.To)
+                                                {
+                                                    var address = string.Format("{0}", to);
+                                                    var index = address.IndexOf(ConstantsHelper.MailSuffix);
+                                                    if (index > -1)
+                                                        address = address.Substring(0, index);
+                                                    if (Guid.TryParse(address, out id))
+                                                    {
+                                                        isNew = false;
+                                                        break;
+                                                    }
+                                                }
+                                                if (isNew || id == default(Guid))
+                                                {
+                                                    c = new Communication { CommunicationID = Guid.NewGuid() };
+                                                }
+                                                else
+                                                {
+
+                                                }
+                                                //else to guid@suffix ->update ticket
+                                            }
+                                        }
+                                        //send
                                         /* NOTE: In IMAP message deleting is 2 step operation.
                                          *  1) You need to mark message deleted, by setting "Deleted" flag.
                                          *  2) You need to call Expunge command to force server to dele messages physically.
