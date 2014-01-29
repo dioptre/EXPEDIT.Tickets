@@ -107,16 +107,27 @@ namespace EXPEDIT.Tickets.Services {
                     var tx = (from o in d.Communications where o.CommunicationID==id && o.Version == 0 && o.VersionDeletedBy == null select o).FirstOrDefault();
                     if (tx != null)
                     {
-                        m.RegardingWorkTypeID = tx.RegardingWorkTypeID;
-                        m.StatusWorkTypeID = tx.StatusWorkTypeID;
-                        m.CommunicationEmail = tx.CommunicationEmail;
-                        m.CommunicationMobile = tx.CommunicationMobile;
+                        if (!m.RegardingWorkTypeID.HasValue)
+                            m.RegardingWorkTypeID = tx.RegardingWorkTypeID;
+                        if (!m.StatusWorkTypeID.HasValue)
+                            m.StatusWorkTypeID = tx.StatusWorkTypeID;
+                        if (string.IsNullOrWhiteSpace(m.CommunicationEmail))
+                            m.CommunicationEmail = tx.CommunicationEmail;
+                        if (string.IsNullOrWhiteSpace(m.CommunicationMobile))
+                            m.CommunicationMobile = tx.CommunicationMobile;
+                        if (string.IsNullOrWhiteSpace(m.Comment))
+                            m.Comment = tx.Comment;
                     }
                     m.CommunicationEmailsAdditional = (from o in d.CommunicationEmails where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id select o)
                         .ToDictionary((f) => f.CommunicationEmailID, (e) => new Tuple<Guid?, string>(e.ContactID.Value, e.CommunicationEmail));
                     m.CommunicationRegardingData = (from o in d.CommunicationRegardingDatas where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id && o.ReferenceID!=null select o)
                        .ToDictionary((f)=>f.CommunicationRegardingDataID, (e) => new TicketRegarding { ReferenceID = e.ReferenceID.Value, TableType = e.TableType, Description = e.ReferenceName });
 
+                    if (m.CommunicationRegardingData.Any())
+                    {
+                        var regarding = m.CommunicationRegardingData.FirstOrDefault();
+                        m.RegardingID = string.Format("[{0}][{1}]", regarding.Value.ReferenceID, regarding.Value.TableType);
+                    }
                     m.OldComments = (from o in d.Communications where o.CommunicationID == id && o.Version != 0 && o.VersionDeletedBy == null select o.Comment).ToList();
                     m.OldFiles = (from o in d.FileDatas
                                   where o.Version == 0 && o.VersionDeletedBy == null && o.TableType == table && o.ReferenceID == id
@@ -124,12 +135,12 @@ namespace EXPEDIT.Tickets.Services {
                 }
                 else
                 {
-                    m.CommunicationID = Guid.NewGuid();
                     m.OpenedBy = contact.ContactID;
+                    m.CommunicationContactID = contact.ContactID;
+                    m.CommunicationEmail = contact.DefaultEmail;
+                    m.CommunicationMobile = contact.DefaultMobile;
+
                 }
-                m.CommunicationContactID = contact.ContactID;
-                m.CommunicationEmail = contact.DefaultEmail;
-                m.CommunicationMobile = contact.DefaultMobile;
                 
 
                 //Fill Select Lists
