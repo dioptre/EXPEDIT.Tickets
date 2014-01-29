@@ -54,7 +54,7 @@ namespace EXPEDIT.Tickets.Services
             if (_clock.UtcNow > nextUpdate.GetValueOrDefault())
             {
                 _signals.Trigger(SIGNAL_KEY);
-                _mailTickets.CheckMail(null);               
+                _mailTickets.CheckMail(null); //Could go async further here, but will need to decouple context dependent db writes (_users.sendmail etc)               
 
             }
         }

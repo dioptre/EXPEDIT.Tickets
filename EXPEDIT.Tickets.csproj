@@ -164,7 +164,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Controllers\UserController.cs" />
+    <Compile Include="Handlers\MailTicketHandler.cs" />
     <Compile Include="Helpers\ConstantsHelper.cs" />
+    <Compile Include="Migrations.cs" />
     <Compile Include="Models\MailTicketPart.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="Services\IMailTicketsService.cs" />
