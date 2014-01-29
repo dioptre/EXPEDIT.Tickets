@@ -207,6 +207,7 @@ namespace EXPEDIT.Tickets.Services {
                     c.VersionAntecedentID = c.CommunicationID;
                     c.VersionOwnerContactID = contact.ContactID;
                     c.CommunicationContactID = contact.ContactID;
+                    c.RegardingDescription = m.RegardingID;
                     d.AddToCommunications(c);
                 }
                 //Reusable Vars
@@ -245,6 +246,7 @@ namespace EXPEDIT.Tickets.Services {
                                    where o.ContactID != null && o.Email!=null
                                    select new CommunicationEmails
                                    {
+                                       CommunicationEmailID = Guid.NewGuid(),
                                        CommunicationID = id.Value,
                                        CommunicationEmail = o.Email,
                                        ContactID = o.ContactID,

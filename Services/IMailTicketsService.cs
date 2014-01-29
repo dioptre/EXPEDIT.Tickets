@@ -6,6 +6,7 @@ using Orchard;
 using XODB.Module.BusinessObjects;
 using XODB.Models;
 using System.ServiceModel;
+using EXPEDIT.Tickets.Models;
 
 namespace EXPEDIT.Tickets.Services
 {
@@ -16,7 +17,7 @@ namespace EXPEDIT.Tickets.Services
         void CheckMailAsync();
 
         [OperationContract]
-        void CheckMail();
+        void CheckMail(MailTicketPart m);
     }
   
 }

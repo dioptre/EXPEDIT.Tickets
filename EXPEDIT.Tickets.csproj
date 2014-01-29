@@ -165,6 +165,7 @@
   <ItemGroup>
     <Compile Include="Controllers\UserController.cs" />
     <Compile Include="Helpers\ConstantsHelper.cs" />
+    <Compile Include="Models\MailTicketPart.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="Services\IMailTicketsService.cs" />
     <Compile Include="Services\ITicketsService.cs" />
@@ -173,9 +174,7 @@
     <Compile Include="Services\TicketsService.cs" />
     <Compile Include="ViewModels\TicketsViewModel.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Content Include="Views\User\Index.cshtml" />
   </ItemGroup>

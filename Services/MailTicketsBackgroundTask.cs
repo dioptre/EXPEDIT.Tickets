@@ -54,7 +54,7 @@ namespace EXPEDIT.Tickets.Services
             if (_clock.UtcNow > nextUpdate.GetValueOrDefault())
             {
                 _signals.Trigger(SIGNAL_KEY);
-                _mailTickets.CheckMailAsync();               
+                _mailTickets.CheckMail(null);               
 
             }
         }

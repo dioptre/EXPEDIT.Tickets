@@ -60,13 +60,14 @@ namespace EXPEDIT.Tickets.Helpers
               "<div width=500px><p>Materials provided in this email are provided &quot;as is&quot;, without warranty of any kind, either express or implied, including, without limitation, warranties of merchantability, fitness for a particular purpose and non-infringement.</p></div>" +
               "<div width=500px><p>This email may contain advice, opinions and statements of various information providers. Mining Appstore does not represent or endorse the accuracy or reliability of any advice, opinion, statement or other information provided by any information provider, any User of this content or any other person or entity. Reliance upon any such advice, opinion, statement, or other information shall also be at the User&rsquo;s own risk.</p></div>"
               ;
+        public static string EMAIL_FROM_NAME = "Mining Appstore";
 
         private static string mailHost = null;
         public static string MailHost { get { if (mailHost == null) { mailHost = System.Configuration.ConfigurationManager.AppSettings["MailHost"] ?? "support.miningappstore.com"; } return mailHost; } }
         private static string mailUserEmail = null;
-        public static string MailUserEmail { get { if (mailUserEmail == null) { mailUserEmail = System.Configuration.ConfigurationManager.AppSettings["MailUserEmail"] ?? "help@suppport.miningappstore.com"; } return mailUserEmail; } }
+        public static string MailUserEmail { get { if (mailUserEmail == null) { mailUserEmail = System.Configuration.ConfigurationManager.AppSettings["MailUserEmail"] ?? @"help@support.miningappstore.com"; } return mailUserEmail; } }
         private static string mailPassword = null;
-        public static string MailPassword { get { if (mailPassword == null) { mailPassword = System.Configuration.ConfigurationManager.AppSettings["MailPassword"] ?? "help"; } return mailPassword; } }
+        public static string MailPassword { get { if (mailPassword == null) { mailPassword = System.Configuration.ConfigurationManager.AppSettings["MailPassword"] ?? @"help"; } return mailPassword; } }
         private static int? mailPort = null;
         public static int MailPort
         {
@@ -97,7 +98,7 @@ namespace EXPEDIT.Tickets.Helpers
                     }
                     else
                     {
-                        mailSuffix = "@suppport.miningappstore.com";
+                        mailSuffix = "@support.miningappstore.com";
                     }
                 }
                 return mailSuffix;

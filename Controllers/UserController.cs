@@ -238,7 +238,7 @@ namespace EXPEDIT.Tickets.Controllers {
         public ActionResult GetMail()
         {
             //TODO Delete this
-            _mailTickets.CheckMail();
+            _mailTickets.CheckMail(null);
             return null;
         }
 
