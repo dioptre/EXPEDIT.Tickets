@@ -251,5 +251,16 @@ namespace EXPEDIT.Tickets.Controllers {
             return View(m);
         }
 
+
+        [Authorize]
+        [HttpPost]
+        public ActionResult UpdateTicket(TicketsViewModel m)
+        {
+            if (!_Tickets.UpdateTicket(ref m))
+                return View(m);
+            else
+                return new RedirectResult(VirtualPathUtility.ToAbsolute("~/TicketSubmitted"));
+        }
+
     }
 }

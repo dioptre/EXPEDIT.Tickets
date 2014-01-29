@@ -17,5 +17,8 @@ namespace EXPEDIT.Tickets.Services
 
          [OperationContract]
          void PrepareTicket(ref TicketsViewModel m);
+
+         [OperationContract]
+         bool UpdateTicket(ref TicketsViewModel m);
     }
 }

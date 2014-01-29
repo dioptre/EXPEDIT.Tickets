@@ -41,18 +41,62 @@ using System.Threading;
 using XODB.Helpers;
 using System.Web.Mvc;
 
-using LumiSoft.MailServer.API.UserAPI;
-
 namespace EXPEDIT.Tickets.Services {
     
     [UsedImplicitly]
     public class TicketsService : ITicketsService {
+
+        private string mailHost = null;
+        private string _mailHost { get { if (mailHost == null) { mailHost = System.Configuration.ConfigurationManager.AppSettings["MailHost"] ?? "support.miningappstore.com"; } return mailHost; } }
+        private string mailUserEmail = null;
+        private string _mailUserEmail { get { if (mailUserEmail == null) { mailUserEmail = System.Configuration.ConfigurationManager.AppSettings["MailUserEmail"] ?? "help@suppport.miningappstore.com"; } return mailUserEmail; } }
+        private string mailPassword = null;
+        private string _mailPassword { get { if (mailPassword == null) { mailPassword = System.Configuration.ConfigurationManager.AppSettings["MailPassword"] ?? "help"; } return mailPassword; } }
+        private int? mailPort = null;
+        private int _mailPort
+        {
+            get
+            {
+                if (!mailPort.HasValue)
+                {
+                    int temp;
+                    if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["MailPort"], out temp))
+                        mailPort = 993;
+                    else
+                        mailPort = temp;
+                }
+                return mailPort.Value;
+            }
+        }
+        private string mailSuffix = null;
+        private string _mailSuffix
+        {
+            get
+            {
+                if (mailSuffix == null)
+                {
+                    if (_mailUserEmail != null)
+                    {
+                        int temp = _mailUserEmail.IndexOf('@');
+                        mailSuffix = mailUserEmail.Substring(temp);
+                    }
+                    else
+                    {
+                        mailSuffix = "@suppport.miningappstore.com";
+                    }
+                }
+                return mailSuffix;
+            }
+        }
+
+
         private readonly IOrchardServices _orchardServices;
         private readonly IContentManager _contentManager;
         private readonly IMessageManager _messageManager;
         private readonly IScheduledTaskManager _taskManager;
         private readonly IUsersService _users;
         private readonly IMediaService _media;
+        private readonly IMailApiService _mailApi;
         public ILogger Logger { get; set; }
 
         public TicketsService(
@@ -61,7 +105,8 @@ namespace EXPEDIT.Tickets.Services {
             IMessageManager messageManager, 
             IScheduledTaskManager taskManager, 
             IUsersService users, 
-            IMediaService media)
+            IMediaService media,
+            IMailApiService mailApi)
         {
             _orchardServices = orchardServices;
             _contentManager = contentManager;
@@ -69,6 +114,7 @@ namespace EXPEDIT.Tickets.Services {
             _taskManager = taskManager;
             _media = media;
             _users = users;
+            _mailApi = mailApi;
             T = NullLocalizer.Instance;
             Logger = NullLogger.Instance;
         }
@@ -153,13 +199,47 @@ namespace EXPEDIT.Tickets.Services {
         }
 
 
+
+        public bool UpdateTicket(ref TicketsViewModel m)
+        {
+            bool processed = true;
+            if (m == null)
+                throw new Exception("Invalid Ticket Object");
+            var supplier = _users.ApplicationCompanyID;
+            var application = _users.ApplicationID;
+            var contact = _users.GetContact(_users.Username);
+            var id = m.CommunicationID;
+            var antecedent = id;
+            string from = null;
+            using (new TransactionScope(TransactionScopeOption.Suppress))
+            {
+                
+                var d = new XODBC(_users.ApplicationConnectionString, null);
+                //Save ticket
+                //Add sender details
+                //Add alias for antecedent if antecedent!=id
+                var c = d.Communications.Where<Communication>((f)=> f.Version == 0 && f.VersionDeletedBy == null && f.CommunicationID == id).Select(f=>f).FirstOrDefault();
+                if (c != null && c.VersionAntecedentID.HasValue)
+                    antecedent = c.VersionAntecedentID.Value;
+                from = string.Format("{0}{1}", antecedent, _mailSuffix);
+            }
+            if (processed)
+            {
+                _mailApi.ProcessApiRequestAsync(MailApiCall.AliasAdd, _mailUserEmail, from); //Should happen in ~45 secs
+                _users.EmailUsersAsync(new string[] { _users.Email }, "Updated Support Ticket", "Support ticket content", false, false, from, _orchardServices.WorkContext.CurrentSite.SiteName, true);
+            }
+
+
+            return processed;
+        }
+
         public void GetMailFolders()
         {
             var mail = new IMAP_Client();
             mail.Logger = new Logger();
             //pop3.Logger.WriteLog += m_pLogCallback;
-            mail.Connect("imap.gmail.com", 993, false);
-            mail.Login("staff@miningappstore.com", "=652ymQ*");
+            mail.Connect(_mailHost, _mailPort, false);
+            mail.Login(_mailUserEmail, _mailPassword);
             IMAP_r_u_List[] folders = mail.GetFolders(null);
 
             char folderSeparator = mail.FolderSeparator;
@@ -217,8 +297,8 @@ namespace EXPEDIT.Tickets.Services {
                 {
                     var y = w;
                 };
-                mail.Connect("support.miningappstore.com", 993, true);
-                mail.Login("help@support.miningappstore.com", "help");
+                mail.Connect(_mailHost, _mailPort, true);
+                mail.Login(_mailUserEmail, _mailPassword);
                 try
                 {
                     mail.SelectFolder("inbox");

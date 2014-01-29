@@ -115,9 +115,6 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="UserAPI">
-      <HintPath>..\..\..\..\lib\LumiSoft.Net\MailServer\Application\Debug\UserAPI.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Web.config" />
