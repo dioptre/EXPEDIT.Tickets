@@ -41,54 +41,16 @@ using System.Threading;
 using XODB.Helpers;
 using System.Web.Mvc;
 
+using System.Web.Hosting;
+using Orchard.Environment.Configuration;
+
 namespace EXPEDIT.Tickets.Services {
     
     [UsedImplicitly]
     public class TicketsService : ITicketsService {
 
-        private string mailHost = null;
-        private string _mailHost { get { if (mailHost == null) { mailHost = System.Configuration.ConfigurationManager.AppSettings["MailHost"] ?? "support.miningappstore.com"; } return mailHost; } }
-        private string mailUserEmail = null;
-        private string _mailUserEmail { get { if (mailUserEmail == null) { mailUserEmail = System.Configuration.ConfigurationManager.AppSettings["MailUserEmail"] ?? "help@suppport.miningappstore.com"; } return mailUserEmail; } }
-        private string mailPassword = null;
-        private string _mailPassword { get { if (mailPassword == null) { mailPassword = System.Configuration.ConfigurationManager.AppSettings["MailPassword"] ?? "help"; } return mailPassword; } }
-        private int? mailPort = null;
-        private int _mailPort
-        {
-            get
-            {
-                if (!mailPort.HasValue)
-                {
-                    int temp;
-                    if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["MailPort"], out temp))
-                        mailPort = 993;
-                    else
-                        mailPort = temp;
-                }
-                return mailPort.Value;
-            }
-        }
-        private string mailSuffix = null;
-        private string _mailSuffix
-        {
-            get
-            {
-                if (mailSuffix == null)
-                {
-                    if (_mailUserEmail != null)
-                    {
-                        int temp = _mailUserEmail.IndexOf('@');
-                        mailSuffix = mailUserEmail.Substring(temp);
-                    }
-                    else
-                    {
-                        mailSuffix = "@suppport.miningappstore.com";
-                    }
-                }
-                return mailSuffix;
-            }
-        }
-
+        private const string DIRECTORY_TEMP = "EXPEDIT.Tickets\\Temp";
+      
 
         private readonly IOrchardServices _orchardServices;
         private readonly IContentManager _contentManager;
@@ -97,6 +59,8 @@ namespace EXPEDIT.Tickets.Services {
         private readonly IUsersService _users;
         private readonly IMediaService _media;
         private readonly IMailApiService _mailApi;
+        private ShellSettings _settings;
+        private readonly IStorageProvider _storage;
         public ILogger Logger { get; set; }
 
         public TicketsService(
@@ -106,7 +70,9 @@ namespace EXPEDIT.Tickets.Services {
             IScheduledTaskManager taskManager, 
             IUsersService users, 
             IMediaService media,
-            IMailApiService mailApi)
+            IMailApiService mailApi,
+            ShellSettings settings,
+            IStorageProvider storage)
         {
             _orchardServices = orchardServices;
             _contentManager = contentManager;
@@ -117,6 +83,8 @@ namespace EXPEDIT.Tickets.Services {
             _mailApi = mailApi;
             T = NullLocalizer.Instance;
             Logger = NullLogger.Instance;
+            _settings = settings;
+            _storage = storage;
         }
 
         public Localizer T { get; set; }
@@ -137,18 +105,22 @@ namespace EXPEDIT.Tickets.Services {
                 {
                     var id = m.CommunicationID;
                     var tx = (from o in d.Communications where o.CommunicationID==id && o.Version == 0 && o.VersionDeletedBy == null select o).FirstOrDefault();
-                    m.RegardingWorkTypeID = tx.RegardingWorkTypeID;
-                    m.StatusWorkTypeID = tx.StatusWorkTypeID;
-                    m.CommunicationRegardingData = (from o in d.CommunicationRegardingDatas where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id && o.ReferenceID!=null select o)
-                       .ToDictionary((f)=>f.CommunicationRegardingDataID, (e) => new TicketRegarding { ReferenceID = e.ReferenceID.Value, TableType = e.TableType, Description = e.ReferenceName });
-                    m.CommunicationEmail = tx.CommunicationEmail;
-                    m.CommunicationMobile = tx.CommunicationMobile;
+                    if (tx != null)
+                    {
+                        m.RegardingWorkTypeID = tx.RegardingWorkTypeID;
+                        m.StatusWorkTypeID = tx.StatusWorkTypeID;
+                        m.CommunicationEmail = tx.CommunicationEmail;
+                        m.CommunicationMobile = tx.CommunicationMobile;
+                    }
                     m.CommunicationEmailsAdditional = (from o in d.CommunicationEmails where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id select o)
                         .ToDictionary((f) => f.CommunicationEmailID, (e) => new Tuple<Guid?, string>(e.ContactID.Value, e.CommunicationEmail));
+                    m.CommunicationRegardingData = (from o in d.CommunicationRegardingDatas where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id && o.ReferenceID!=null select o)
+                       .ToDictionary((f)=>f.CommunicationRegardingDataID, (e) => new TicketRegarding { ReferenceID = e.ReferenceID.Value, TableType = e.TableType, Description = e.ReferenceName });
+
                     m.OldComments = (from o in d.Communications where o.CommunicationID == id && o.Version != 0 && o.VersionDeletedBy == null select o.Comment).ToList();
                     m.OldFiles = (from o in d.FileDatas
                                   where o.Version == 0 && o.VersionDeletedBy == null && o.TableType == table && o.ReferenceID == id
-                                  select new Tuple<Guid, string>(o.FileDataID, o.FileName)).ToList();
+                                  select new {o.FileDataID, o.FileName}).AsEnumerable().Select(f=>new Tuple<Guid, string>(f.FileDataID, f.FileName)).ToList();
                 }
                 else
                 {
@@ -202,221 +174,168 @@ namespace EXPEDIT.Tickets.Services {
 
         public bool UpdateTicket(ref TicketsViewModel m)
         {
-            bool processed = true;
             if (m == null)
-                throw new Exception("Invalid Ticket Object");
+                return false;
             var supplier = _users.ApplicationCompanyID;
             var application = _users.ApplicationID;
             var contact = _users.GetContact(_users.Username);
             var id = m.CommunicationID;
             var antecedent = id;
             string from = null;
+            string[] recipients = null;
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
-                
+
                 var d = new XODBC(_users.ApplicationConnectionString, null);
-                //Save ticket
-                //Add sender details
-                //Add alias for antecedent if antecedent!=id
-                var c = d.Communications.Where<Communication>((f)=> f.Version == 0 && f.VersionDeletedBy == null && f.CommunicationID == id).Select(f=>f).FirstOrDefault();
-                if (c != null && c.VersionAntecedentID.HasValue)
-                    antecedent = c.VersionAntecedentID.Value;
-                from = string.Format("{0}{1}", antecedent, _mailSuffix);
-            }
-            if (processed)
-            {
-                _mailApi.ProcessApiRequestAsync(MailApiCall.AliasAdd, _mailUserEmail, from); //Should happen in ~45 secs
-                _users.EmailUsersAsync(new string[] { _users.Email }, "Updated Support Ticket", "Support ticket content", false, false, from, _orchardServices.WorkContext.CurrentSite.SiteName, true);
-            }
-
-
-            return processed;
-        }
-
-        public void GetMailFolders()
-        {
-            var mail = new IMAP_Client();
-            mail.Logger = new Logger();
-            //pop3.Logger.WriteLog += m_pLogCallback;
-            mail.Connect(_mailHost, _mailPort, false);
-            mail.Login(_mailUserEmail, _mailPassword);
-            IMAP_r_u_List[] folders = mail.GetFolders(null);
-
-            char folderSeparator = mail.FolderSeparator;
-            var tree = new TreeHelper<string>();
-            foreach (IMAP_r_u_List folder in folders)
-            {
-                string[] folderPath = folder.FolderName.Split(folderSeparator);
-
-
-                // Conatins sub folders.
-                if (folderPath.Length > 1)
+                var c = d.Communications.Where<Communication>((f) => f.Version == 0 && f.VersionDeletedBy == null && f.CommunicationID == id).Select(f => f).FirstOrDefault();
+                if (c == null)
                 {
-
-                    string currentPath = "";
-
-                    foreach (string fold in folderPath)
+                    //Update new
+                    c = new Communication();
+                    c.CommunicationID = id.Value;
+                    c.VersionAntecedentID = c.CommunicationID;
+                    c.VersionOwnerContactID = contact.ContactID;
+                    c.CommunicationContactID = contact.ContactID;
+                    d.AddToCommunications(c);
+                }
+                //Reusable Vars
+                antecedent = c.VersionAntecedentID.Value;
+                string tt = null;
+                Guid refID = default(Guid);
+                if (!string.IsNullOrWhiteSpace(m.RegardingID))
+                {
+                    var temp = m.RegardingID.Split(new char[] { '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (temp.Length != 2)
+                        return false;
+                    if (Guid.TryParse(temp[0], out refID))
+                        m.RegardingReferenceID = refID;
+                    if (temp[1].Length < 255 && temp[1].IndexOf('_') > -1)
                     {
-                        if (currentPath.Length > 0)
-                        {
-                            currentPath += "/" + fold;
-                        }
-                        else
-                        {
-                            currentPath = fold;
-                        }
-
-                        TreeNode<string> node = tree.FindNode(fold);
-                        if (node == null)
-                        {
-                            node = new TreeNode<string>(fold);
-                            node.Data = currentPath;
-                            tree.AddChild(node);
-                        }
+                        tt = temp[1];
+                        m.RegardingTableType = tt;
                     }
                 }
-                else
+                //Update related datasets
+                if (!string.IsNullOrWhiteSpace(tt) && refID != default(Guid))
                 {
-                    TreeNode<string> node = new TreeNode<string>(folder.FolderName);
-                    node.Data = folder.FolderName;
-                    tree.AddSibling(node);
-                }
-            }
-
-
-        }
-
-        public void GetMail()
-        {
-
-            try
-            {
-                var mail = new IMAP_Client();
-                mail.Logger = new Logger();
-                mail.Logger.WriteLog += (object o, WriteLogEventArgs w) =>
-                {
-                    var y = w;
-                };
-                mail.Connect(_mailHost, _mailPort, true);
-                mail.Login(_mailUserEmail, _mailPassword);
-                try
-                {
-                    mail.SelectFolder("inbox");
-                    
-                    // Start fetching.
-                    mail.Fetch(
-                        false,
-                        IMAP_t_SeqSet.Parse("1:*"),
-                        new IMAP_t_Fetch_i[]{
-                        new IMAP_t_Fetch_i_Envelope(),
-                        new IMAP_t_Fetch_i_Flags(),
-                        new IMAP_t_Fetch_i_InternalDate(),
-                        new IMAP_t_Fetch_i_Rfc822Size(),
-                        new IMAP_t_Fetch_i_Uid(),
-                        new IMAP_t_Fetch_i_Body(),
-                        new IMAP_t_Fetch_i_Rfc822()
-                    },
-                        (object sender, EventArgs<IMAP_r_u> e) =>
+                    if (!d.CommunicationRegardingDatas.Any(f => f.CommunicationID == c.CommunicationID && f.TableType == tt && f.ReferenceID == refID))
+                    {
+                        c.CommunicationRegarding.Add(new CommunicationRegardingData
                         {
-                            if (e.Value is IMAP_r_u_Fetch)
-                            {
-                                IMAP_r_u_Fetch fetchResp = (IMAP_r_u_Fetch)e.Value;
-
-                                try
-                                {
-                                    string from = "";
-                                    if (fetchResp.Envelope.From != null)
-                                    {
-                                        for (int i = 0; i < fetchResp.Envelope.From.Length; i++)
-                                        {
-                                            // Don't add ; for last item
-                                            if (i == fetchResp.Envelope.From.Length - 1)
-                                            {
-                                                from += fetchResp.Envelope.From[i].ToString();
-                                            }
-                                            else
-                                            {
-                                                from += fetchResp.Envelope.From[i].ToString() + ";";
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        from = "<none>";
-                                    }
-
-
-                                    Mail_Message mime = Mail_Message.ParseFromStream(fetchResp.Rfc822.Stream);
-                                    fetchResp.Rfc822.Stream.Dispose();
-                                    foreach (MIME_Entity entity in mime.Attachments)
-                                    {
-                                        if (entity.ContentDisposition != null && entity.ContentDisposition.Param_FileName != null)
-                                        {
-                                            // item.Text = entity.ContentDisposition.Param_FileName;
-                                        }
-                                        else
-                                        {
-                                            //item.Text = "untitled";
-                                        }
-                                    }
-
-                                    if (mime.BodyText != null)
-                                    {
-                                        //m_pTabPageMail_MessageText.Text = mime.BodyText;
-                                    }
-
-                                    //currentItem.Text = from;
-
-                                    //currentItem.SubItems.Add(fetchResp.Envelope.Subject != null ? fetchResp.Envelope.Subject : "<none>");
-
-                                    //currentItem.SubItems.Add(fetchResp.InternalDate.Date.ToString("dd.MM.yyyy HH:mm"));
-
-                                    //currentItem.SubItems.Add(((decimal)(fetchResp.Rfc822Size.Size / (decimal)1000)).ToString("f2") + " kb");
-
-                                    //m_pTabPageMail_Messages.Items.Add(currentItem);
-
-                                    //Move file or delete it
-                                    IMAP_t_SeqSet sequence_set = IMAP_t_SeqSet.Parse(fetchResp.UID.UID.ToString());
-                                    Orchard.Email.Models.SmtpSettingsPart smtpSettings = null;
-                                    if (_orchardServices.WorkContext != null)
-                                        smtpSettings = _orchardServices.WorkContext.CurrentSite.As<Orchard.Email.Models.SmtpSettingsPart>();
-                                    if (smtpSettings != null && !string.IsNullOrWhiteSpace(smtpSettings.Address) && from.IndexOf(smtpSettings.Address) >= 0)
-                                    {
-                                        if (!mail.GetFolders("Support").Any())
-                                            mail.CreateFolder("Support");                                        
-                                        mail.MoveMessages(true, sequence_set, "Support", false);
-                                    }
-                                    else
-                                    {
-                                        /* NOTE: In IMAP message deleting is 2 step operation.
-                                         *  1) You need to mark message deleted, by setting "Deleted" flag.
-                                         *  2) You need to call Expunge command to force server to dele messages physically.
-                                         */
-                                        mail.StoreMessageFlags(true, sequence_set, IMAP_Flags_SetType.Add, new IMAP_t_MsgFlags(new string[] { IMAP_t_MsgFlags.Deleted }));
-                                    }
-                                    mail.Expunge();
-
-
-                                    //currentItem.Tag = fetchResp.UID.UID;
-
-                                }
-                                catch (Exception ex)
-                                {
-
-                                }
-                            }
-                        }
-                    );
+                            CommunicationID = c.CommunicationID,
+                            CommunicationRegardingDataID = Guid.NewGuid(),
+                            TableType = m.RegardingTableType,
+                            ReferenceID = m.RegardingReferenceID,
+                            VersionOwnerContactID = contact.ContactID,
+                            VersionUpdatedBy = contact.ContactID
+                        });
+                    }
+                    var support = (from o in d.E_SP_GetSupportEmail(m.RegardingTableType, m.RegardingReferenceID)
+                                   where o.ContactID != null && o.Email!=null
+                                   select new CommunicationEmails
+                                   {
+                                       CommunicationID = id.Value,
+                                       CommunicationEmail = o.Email,
+                                       ContactID = o.ContactID,
+                                       VersionOwnerContactID = contact.ContactID,
+                                       VersionUpdatedBy = contact.ContactID
+                                   }).FirstOrDefault();
+                    if (support != null && !d.CommunicationEmails.Any(
+                        f => f.CommunicationID == id.Value
+                            && (f.ContactID == support.ContactID || f.CommunicationEmail == support.CommunicationEmail)))
+                    {
+                        c.CommunicationEmailsOther.Add(support);
+                    }
                 }
-                catch (Exception x)
-                {
-                }
-            }
-            catch (Exception x)
-            {
+                //Update Both
+                if (c.CommunicationEmail != _users.Email)
+                    c.CommunicationEmail = _users.Email;
+                if (c.Comment != m.Comment)
+                    c.Comment = m.Comment;
+                if (c.VersionUpdatedBy != contact.ContactID)                
+                    c.VersionUpdatedBy = contact.ContactID;
+                if (c.RegardingWorkTypeID != m.RegardingWorkTypeID)
+                    c.RegardingWorkTypeID = m.RegardingWorkTypeID;
+                if (c.StatusWorkTypeID != m.StatusWorkTypeID)
+                    c.StatusWorkTypeID = m.StatusWorkTypeID;
+                d.SaveChanges();
+                //Now fill email 'BCC/TO' list
+                recipients = d.CommunicationEmails.Where(f => f.CommunicationID == id && f.VersionDeletedBy == null && f.Version == 0).Select(f => f.CommunicationEmail)
+                    .Union(new string[] { c.CommunicationEmail, _users.Email }).ToArray();
 
+                from = string.Format("{0}{1}", antecedent, ConstantsHelper.MailSuffix);
             }
+            _mailApi.ProcessApiRequestAsync(MailApiCall.AliasAdd, ConstantsHelper.MailUserEmail, from); //Should happen in ~45 secs
+            _users.EmailUsersAsync(recipients, "Updated Support Ticket", string.Format("{0}<br/>^^^<br/>{1} on {2}<br/>{3}", m.Comment, _users.Username, _orchardServices.WorkContext.CurrentSite.SiteName, ConstantsHelper.EMAIL_FOOTER), false, false, from, _orchardServices.WorkContext.CurrentSite.SiteName, true);
+            return true;
         }
-       
+
+      
+
+
+        public bool SubmitFile(TicketsViewModel m)
+        {
+            if (m.CommunicationID == default(Guid))
+                return false;
+            var contact = _users.ContactID;
+            using (new TransactionScope(TransactionScopeOption.Suppress))
+            {
+                var d = new XODBC(_users.ApplicationConnectionString, null);
+                //First check if any data is not owned by me
+                if ((from o in d.FileDatas where o.ReferenceID == m.CommunicationID && o.VersionOwnerContactID != contact.Value select o).Any())
+                    return false;
+                if (m.Files != null)
+                {
+                    var table = d.GetTableName<Communication>();
+                    var mediaPath = HostingEnvironment.IsHosted ? HostingEnvironment.MapPath("~/Media/") ?? "" : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Media");
+                    var storagePath = Path.Combine(mediaPath, _settings.Name);
+                    foreach (var f in m.Files)
+                    {
+                        var filename = string.Concat(f.Value.FileName.Reverse().Take(50).Reverse());
+
+                        var file = new FileData
+                        {
+                            FileDataID = f.Key,
+                            TableType = table,
+                            ReferenceID = m.CommunicationID,
+                            FileTypeID = null, //TODO give type
+                            FileName = filename,
+                            FileLength = f.Value.ContentLength,
+                            MimeType = f.Value.ContentType,
+                            VersionOwnerContactID = contact,
+                            DocumentType = ConstantsHelper.DOCUMENT_TYPE_TICKET_SUBMISSION
+                        };
+                        m.FileLengths.Add(f.Key, f.Value.ContentLength);
+                        _media.GetMediaFolders(DIRECTORY_TEMP);
+                        var path = string.Format("{0}\\{1}-{2}-{3}", DIRECTORY_TEMP, m.CommunicationID.ToString().Replace("-", ""), f.Key.ToString().Replace("-", "").Substring(15), filename.ToString().Replace("-", ""));
+                        var sf = _storage.CreateFile(path);
+                        using (var sw = sf.OpenWrite())
+                            f.Value.InputStream.CopyTo(sw);
+                        f.Value.InputStream.Close();
+                        try
+                        {
+
+                            using (var dh = new DocHelper.FilterReader(Path.Combine(storagePath, path)))
+                                file.FileContent = dh.ReadToEnd();
+                        }
+                        catch { }
+                        using (var sr = sf.OpenRead())
+                            file.FileBytes = sr.ToByteArray();
+                        _storage.DeleteFile(path);
+                        file.FileChecksum = file.FileBytes.ComputeHash();
+                        d.FileDatas.AddObject(file);
+                        d.SaveChanges(); //Commit after each file
+
+                    }
+                }
+
+
+            }
+
+            return true;
+
+
+
+        }
     }
 }

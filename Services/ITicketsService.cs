@@ -11,14 +11,14 @@ namespace EXPEDIT.Tickets.Services
 {
      [ServiceContract]
     public interface ITicketsService : IDependency 
-    {       
-         [OperationContract]
-         void GetMail();
-
+    {               
          [OperationContract]
          void PrepareTicket(ref TicketsViewModel m);
 
          [OperationContract]
          bool UpdateTicket(ref TicketsViewModel m);
+
+         [OperationContract]
+         bool SubmitFile(TicketsViewModel m);
     }
 }

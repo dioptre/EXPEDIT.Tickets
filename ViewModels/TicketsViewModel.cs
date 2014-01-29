@@ -4,7 +4,8 @@ using System.Web.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Newtonsoft.Json;
+using System.Web;
 namespace EXPEDIT.Tickets.ViewModels
 {
     public class TicketsViewModel
@@ -25,6 +26,8 @@ namespace EXPEDIT.Tickets.ViewModels
         public Guid? RegardingExperienceID { get; set; }
         public string RegardingDescription { get; set; }
         public string RegardingID { get; set; }
+        public string RegardingTableType { get; set; }
+        public Guid? RegardingReferenceID { get; set; }
         public Guid? OpenedBy { get; set; }
         public Guid? AssignedBy { get; set; }
         public Guid? MaintainedBy { get; set; }
@@ -34,14 +37,24 @@ namespace EXPEDIT.Tickets.ViewModels
         public decimal EstimatedRevenue { get; set; }
         public decimal EstimatedCost { get; set; }
         public decimal Probability { get; set; }
+        [Required]
         public string Comment { get; set; }
         public List<string> OldComments { get; set; }
         public List<Tuple<Guid,string>> OldFiles { get; set; }
         public Dictionary<Guid,Tuple<Guid?,string>> CommunicationEmailsAdditional { get; set; }
         public Dictionary<Guid, TicketRegarding> CommunicationRegardingData { get; set; } //ReferenceID, TableType
+
+        [JsonIgnore]
         public SelectList SlWorkTypesRegarding { get; set; }
+        [JsonIgnore]
         public SelectList SlWorkTypesStatus { get; set; }
+        [JsonIgnore]
         public SelectList SlRegarding { get; set; } //Made of [GUID]-[TableType], Description
+        [JsonIgnore]
+        public Dictionary<Guid, HttpPostedFileBase> Files { get; set; }
+        [JsonIgnore]
+        public Dictionary<Guid, int> FileLengths { get; set; }
+
         
     }
 

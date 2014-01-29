@@ -85,6 +85,10 @@
     <Reference Include="MigraDoc.RtfRendering">
       <HintPath>..\..\..\..\lib\pdfsharp\MigraDoc.RtfRendering.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\lib\newtonsoft.json\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="PdfSharp">
       <HintPath>..\..\..\..\lib\pdfsharp\PdfSharp.dll</HintPath>
     </Reference>
@@ -162,7 +166,10 @@
     <Compile Include="Controllers\UserController.cs" />
     <Compile Include="Helpers\ConstantsHelper.cs" />
     <Compile Include="Route.cs" />
+    <Compile Include="Services\IMailTicketsService.cs" />
     <Compile Include="Services\ITicketsService.cs" />
+    <Compile Include="Services\MailTicketsBackgroundTask.cs" />
+    <Compile Include="Services\MailTicketsService.cs" />
     <Compile Include="Services\TicketsService.cs" />
     <Compile Include="ViewModels\TicketsViewModel.cs" />
   </ItemGroup>

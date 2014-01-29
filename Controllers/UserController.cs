@@ -24,13 +24,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Orchard.Mvc;
 using EXPEDIT.Tickets.ViewModels;
+using System.Dynamic;
+using ImpromptuInterface.Dynamic;
 
 namespace EXPEDIT.Tickets.Controllers {
     
     [Themed]
     public class UserController : Controller {
         public IOrchardServices Services { get; set; }
-        private ITicketsService _Tickets { get; set; }
+        private ITicketsService _tickets { get; set; }
+        private IMailTicketsService _mailTickets { get; set; }
         public ILogger Logger { get; set; }
         private readonly ISearchService _searchService;
         private readonly IContentManager _contentManager;
@@ -41,13 +44,14 @@ namespace EXPEDIT.Tickets.Controllers {
             ITicketsService Tickets,
             IContentManager contentManager,
             ISiteService siteService,
-            IShapeFactory shapeFactory
+            IShapeFactory shapeFactory,
+            IMailTicketsService mailTickets
             )
         {
-            _Tickets = Tickets;
+            _tickets = Tickets;
             Services = services;
             T = NullLocalizer.Instance;
-
+            _mailTickets = mailTickets;
             _contentManager = contentManager;
             _siteService = siteService;
         }
@@ -230,9 +234,11 @@ namespace EXPEDIT.Tickets.Controllers {
         //    }
         //}
 
+        [Authorize]
         public ActionResult GetMail()
         {
-            _Tickets.GetMail();
+            //TODO Delete this
+            _mailTickets.CheckMail();
             return null;
         }
 
@@ -246,7 +252,7 @@ namespace EXPEDIT.Tickets.Controllers {
                 m = new TicketsViewModel { CommunicationID = guid };
             else
                 m = new TicketsViewModel { CommunicationID = null };
-            _Tickets.PrepareTicket(ref m);
+            _tickets.PrepareTicket(ref m);
                 
             return View(m);
         }
@@ -254,12 +260,35 @@ namespace EXPEDIT.Tickets.Controllers {
 
         [Authorize]
         [HttpPost]
+        [ValidateInput(false)]
         public ActionResult UpdateTicket(TicketsViewModel m)
         {
-            if (!_Tickets.UpdateTicket(ref m))
+            if (string.IsNullOrWhiteSpace(m.Comment) || !m.CommunicationID.HasValue || !_tickets.UpdateTicket(ref m))
+            {
+                _tickets.PrepareTicket(ref m);
                 return View(m);
+            }
             else
                 return new RedirectResult(VirtualPathUtility.ToAbsolute("~/TicketSubmitted"));
+        }
+
+        [Authorize]
+        [Themed(Enabled = false)]
+        public virtual ActionResult UploadFile()
+        {
+            var id = Request.Params["CommunicationID"];
+            if (string.IsNullOrWhiteSpace(id))
+                return null;
+            TicketsViewModel m = new TicketsViewModel { CommunicationID = new Guid(id), FileLengths = new Dictionary<Guid, int>() };
+            if (m.Files == null)
+                m.Files = new Dictionary<Guid, HttpPostedFileBase>();
+            for (int i = 0; i < Request.Files.Count; i++)
+                m.Files.Add(Guid.NewGuid(), Request.Files[i]);
+            _tickets.SubmitFile(m);
+            var list = new List<dynamic>();
+            foreach (var f in m.Files)
+                list.Add(Build<ExpandoObject>.NewObject(name: f.Value.FileName, type: "application/octet", size: m.FileLengths[f.Key], url: VirtualPathUtility.ToAbsolute(string.Format("~/share/file/{0}", f.Key))));
+            return new JsonHelper.JsonNetResult(new { files = list.ToArray() }, JsonRequestBehavior.AllowGet);
         }
 
     }

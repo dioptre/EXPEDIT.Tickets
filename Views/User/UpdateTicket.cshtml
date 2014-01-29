@@ -11,21 +11,22 @@
     <header><h1>@Layout.Title</h1></header>
     <fieldset>
     @*<legend></legend>*@
-    <div class="editor-label">
-        <p>Please describe your request:</p>
+    <div class="editor-label" id="CommentLabel">
+        <p>Please describe your request:<span style="color:red">*</span></p>
     </div>
     <div class="editor-field">
     @Html.TextAreaFor(m => m.Comment, 12, 80,
-	 new Dictionary<string,object> {
-		{"class", "html tinymce"},	
-        {"style", "width:100%"}
+	 new Dictionary<string,object> {        
+		{"class", "textInMce html tinymce"},	
+        {"style", "width:100%"},
+        {"required", "true"},
 	 })<br />
     </div>
     <div class="editor-label">
         <p>@T("Regarding").ToString()</p>
     </div>
     <div class="editor-field">
-        @Html.DropDownListFor(m => m.RegardingID, Model.SlRegarding, "")
+        @Html.DropDownListFor(m => m.RegardingID, Model.SlRegarding, "This Site")
     </div> 
     <div class="editor-label">
         <p>@T("Request Type").ToString()</p>
@@ -87,8 +88,8 @@
         <table role="presentation" class="table table-striped"><tbody class="files"></tbody></table>
     </div>
     </div></fieldset>
-    <input type="submit" value="Submit" />
-    @Html.HiddenFor(m => m.CommunicationID);
+    <input id="Submit" type="button" class="submit" value="Submit" />
+    @Html.HiddenFor(m => m.CommunicationID)
     </article>
 }
 <!-- The template to display files available for upload -->
@@ -221,42 +222,36 @@
         // shouldn't be needed due to the valid_elements setting, but TinyMCE would strip script.src without it.
         extended_valid_elements: "script[type|defer|src|language]"
     });
+   
 </script>
 
 
 
  <script type="text/javascript">
-     // just for the demos, avoids form submit
-     jQuery.validator.setDefaults({
-         debug: false,
-         success: "valid"
-     });
-     $("#payment-form").validate({
-         rules: {
-             "customer[credit_card][expiration_date]": {
-                 required: true,
-                 dateCC: true
-             },
-             "customer[credit_card][number]": {
-                 required: true,
-                 creditcard: true
-             },
-             "customer[email]": {
-                 required: true,
-                 email2: true
-             },
-         },
-         submitHandler: function (form) {
-             form.submit();
-         }
-     });
+    
+     $(document).ready(function () {    
+         $.validator.addClassRules("textInMce", { required: true });
+         $("#Comment").validate();
 
-
+         $("#Submit").click(function () {
+             tinymce.triggerSave();
+             var status;
+             status = $("#Comment").valid(); //Validate again
+             if (status == true) {
+                 $("#form1").submit();
+             }
+             else {                 
+                 $(window).scrollTop($("#CommentLabel").position().top);
+                 alert("Comment Required");
+             }
+         });
+     });
 
      // jqXHRData needed for grabbing by data object of fileupload scope
      var jqXHRData;     
 
      $(document).ready(function () {
+         
 
          //Initialization of fileupload
          initSimpleFileUpload();
@@ -281,7 +276,7 @@
          //});
 
          $('#fileupload').fileupload({
-             url: '/store/user/uploadfile',
+             url: '/tickets/uploadfile',
              dataType: 'json',
              autoUpload: true,
              //add: function (e, data) {

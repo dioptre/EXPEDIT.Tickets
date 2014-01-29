@@ -7,10 +7,13 @@ namespace EXPEDIT.Tickets.Helpers
 {
     public class ConstantsHelper
     {
-        public static string DOCUMENT_TYPE_SOFTWARE_SUBMISSION = "Software Submission";
+        public static string DOCUMENT_TYPE_TICKET_SUBMISSION = "Ticket Submission";
         public static string DOCUMENT_TYPE_INVOICE = "Invoice";
+        public static string EMAIL_FOLDER_INBOX = "Inbox";
+        public static string EMAIL_FOLDER_SUPPORT = "Support";
         public static Guid WORK_TYPE_SUPPORT_REGARDING = new Guid("57ebd6b8-980f-4116-90f5-574765c9766d");
         public static Guid WORK_TYPE_SUPPORT_STATUS = new Guid("72e99319-3a7b-4338-8d97-856678fe7e31");
+        public static Guid WORK_TYPE_SUPPORT = new Guid("37EADA26-1CCC-4BCF-AFA9-4AA0D5946615");
         public static Guid COMPANY_DEFAULT = new Guid("6887ABC9-E2D8-4A2D-B143-6C3E5245C565");
         public static Guid ACCOUNT_TYPE_ONLINE = new Guid("5C329B8D-007D-435E-8261-4FA72D7DF28A");
         public static Guid DEVICE_TYPE_SOFTWARE = new Guid("3f526009-827a-41b0-a633-14b422bdf27f");
@@ -46,7 +49,59 @@ namespace EXPEDIT.Tickets.Helpers
                 "E: accounts@miningappstore.com\r\n" +
                 "U: http://miningappstore.com";
         public static string APP_OWNER = "MINING APPSTORE";
-        public static string PDF_LOGO = @"EXPEDIT.Tickets\Images\pdfheader.jpg";        
+        public static string PDF_LOGO = @"EXPEDIT.Tickets\Images\pdfheader.jpg";
+        public static string EMAIL_FOOTER =
+              "<br/>" +
+              "___________________________________________<br/>" +
+              "Mining Appstore Ticketing System<br/>" +
+              "E: help@support.miningappstore.com<br/>" +
+              "U: http://miningappstore.com<br/>" +
+              "<p><strong>Disclaimer</strong></p>" +
+              "<div width=500px><p>Materials provided in this email are provided &quot;as is&quot;, without warranty of any kind, either express or implied, including, without limitation, warranties of merchantability, fitness for a particular purpose and non-infringement.</p></div>" +
+              "<div width=500px><p>This email may contain advice, opinions and statements of various information providers. Mining Appstore does not represent or endorse the accuracy or reliability of any advice, opinion, statement or other information provided by any information provider, any User of this content or any other person or entity. Reliance upon any such advice, opinion, statement, or other information shall also be at the User&rsquo;s own risk.</p></div>"
+              ;
 
+        private static string mailHost = null;
+        public static string MailHost { get { if (mailHost == null) { mailHost = System.Configuration.ConfigurationManager.AppSettings["MailHost"] ?? "support.miningappstore.com"; } return mailHost; } }
+        private static string mailUserEmail = null;
+        public static string MailUserEmail { get { if (mailUserEmail == null) { mailUserEmail = System.Configuration.ConfigurationManager.AppSettings["MailUserEmail"] ?? "help@suppport.miningappstore.com"; } return mailUserEmail; } }
+        private static string mailPassword = null;
+        public static string MailPassword { get { if (mailPassword == null) { mailPassword = System.Configuration.ConfigurationManager.AppSettings["MailPassword"] ?? "help"; } return mailPassword; } }
+        private static int? mailPort = null;
+        public static int MailPort
+        {
+            get
+            {
+                if (!mailPort.HasValue)
+                {
+                    int temp;
+                    if (!int.TryParse(System.Configuration.ConfigurationManager.AppSettings["MailPort"], out temp))
+                        mailPort = 993;
+                    else
+                        mailPort = temp;
+                }
+                return mailPort.Value;
+            }
+        }
+        private static string mailSuffix = null;
+        public static string MailSuffix
+        {
+            get
+            {
+                if (mailSuffix == null)
+                {
+                    if (MailUserEmail != null)
+                    {
+                        int temp = MailUserEmail.IndexOf('@');
+                        mailSuffix = mailUserEmail.Substring(temp);
+                    }
+                    else
+                    {
+                        mailSuffix = "@suppport.miningappstore.com";
+                    }
+                }
+                return mailSuffix;
+            }
+        }
     }
 }
