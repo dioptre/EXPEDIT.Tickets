@@ -140,6 +140,7 @@ namespace EXPEDIT.Tickets.Services {
                 }
                 else
                 {
+                    m.CommunicationID = Guid.NewGuid();
                     m.OpenedBy = contact.ContactID;
                     m.CommunicationContactID = contact.ContactID;
                     m.CommunicationEmail = contact.DefaultEmail;
