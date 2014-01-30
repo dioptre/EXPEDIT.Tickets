@@ -1,4 +1,4 @@
-﻿@model EXPEDIT.Tickets.ViewModels.TicketsViewModel
+﻿@model EXPEDIT.Tickets.ViewModels.TicketViewModel
 @Html.Partial("Header")
 @{
     HtmlHelper.ClientValidationEnabled = true;
@@ -12,7 +12,7 @@
     <fieldset>
     @*<legend></legend>*@
     <div class="editor-label" id="CommentLabel">
-        <p>Please describe your request:<span style="color:red">*</span></p>
+        <p>Please describe your request:<span style="color:red">*</span> @(Model.OldComments.Count > 0 ? Html.Raw("<a href=\"#ticketHistory\">(scroll below to see history)</a>") : null)</p>
     </div>
     <div class="editor-field">
     @Html.TextAreaFor(m => m.Comment, 12, 80,
@@ -92,6 +92,23 @@
     @Html.HiddenFor(m => m.CommunicationID)
     </article>
 }
+@(Model.OldComments.Count > 0 ? Html.Raw("<h2><a name=\"ticketHistory\">Ticket History</a></h2>") : null)
+<table class="table table-striped">
+<thead>
+<tr><th></th></tr>
+</thead>
+<tbody>
+    @foreach (var p in Model.OldComments) {
+<tr>   
+<td>
+<h4>@p.Item1</h4>
+<p>@Html.Raw(p.Item2)</p>
+</td>
+</tr>
+}
+</tbody>
+</table>
+
 <!-- The template to display files available for upload -->
 <script id="template-upload" type="text/x-tmpl">
 {% for (var i=0, file; file=o.files[i]; i++) { %}
@@ -321,7 +338,7 @@
              type: "POST",
              url: $('#fileupload').fileupload('option', 'url'),
              dataType: 'json',
-             data: { __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() },
+             data: { __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val(), CommunicationID: "@Model.CommunicationID" },
              context: $('#fileupload')[0]
          }).always(function () {
              $(this).removeClass('fileupload-processing');

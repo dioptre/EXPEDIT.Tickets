@@ -320,6 +320,7 @@ namespace EXPEDIT.Tickets.Services
                                                     if (f == null)
                                                         continue;
                                                     file.FileBytes = f.GetDataStream().ToByteArray();
+                                                    file.FileChecksum = file.FileBytes.ComputeHash();
                                                     file.MimeType = f.MediaType;
                                                     if (entity.ContentDisposition.Param_Size > -1)
                                                         file.FileLength = entity.ContentDisposition.Param_Size;

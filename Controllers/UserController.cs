@@ -234,24 +234,24 @@ namespace EXPEDIT.Tickets.Controllers {
         //    }
         //}
 
-        [Authorize]
-        public ActionResult GetMail()
-        {
-            //TODO Delete this
-            _mailTickets.CheckMail(null);
-            return null;
-        }
+        //[Authorize]
+        //public ActionResult GetMail()
+        //{
+        //    //TODO Delete this
+        //    _mailTickets.CheckMail(null);
+        //    return null;
+        //}
 
         [Authorize]
         [HttpGet]
         public ActionResult UpdateTicket(string id)
         {
-            TicketsViewModel m = null;
+            TicketViewModel m = null;
             Guid guid;
             if (Guid.TryParse(id, out guid))
-                m = new TicketsViewModel { CommunicationID = guid };
+                m = new TicketViewModel { CommunicationID = guid };
             else
-                m = new TicketsViewModel { CommunicationID = null };
+                m = new TicketViewModel { CommunicationID = null };
             _tickets.PrepareTicket(ref m);
                 
             return View(m);
@@ -261,7 +261,7 @@ namespace EXPEDIT.Tickets.Controllers {
         [Authorize]
         [HttpPost]
         [ValidateInput(false)]
-        public ActionResult UpdateTicket(TicketsViewModel m)
+        public ActionResult UpdateTicket(TicketViewModel m)
         {
             if (string.IsNullOrWhiteSpace(m.Comment) || !m.CommunicationID.HasValue || !_tickets.UpdateTicket(ref m))
             {
@@ -279,17 +279,58 @@ namespace EXPEDIT.Tickets.Controllers {
             var id = Request.Params["CommunicationID"];
             if (string.IsNullOrWhiteSpace(id))
                 return null;
-            TicketsViewModel m = new TicketsViewModel { CommunicationID = new Guid(id), FileLengths = new Dictionary<Guid, int>() };
+            TicketViewModel m = new TicketViewModel { CommunicationID = new Guid(id), FileLengths = new Dictionary<Guid, int>() };
             if (m.Files == null)
                 m.Files = new Dictionary<Guid, HttpPostedFileBase>();
             for (int i = 0; i < Request.Files.Count; i++)
                 m.Files.Add(Guid.NewGuid(), Request.Files[i]);
-            _tickets.SubmitFile(m);
-            var list = new List<dynamic>();
-            foreach (var f in m.Files)
-                list.Add(Build<ExpandoObject>.NewObject(name: f.Value.FileName, type: "application/octet", size: m.FileLengths[f.Key], url: VirtualPathUtility.ToAbsolute(string.Format("~/share/file/{0}", f.Key))));
-            return new JsonHelper.JsonNetResult(new { files = list.ToArray() }, JsonRequestBehavior.AllowGet);
+            if (Request.Files.Count > 0)
+            {
+                _tickets.SubmitFile(m);
+                var list = new List<dynamic>();
+                foreach (var f in m.Files)
+                    list.Add(Build<ExpandoObject>.NewObject(name: f.Value.FileName, type: "application/octet", size: m.FileLengths[f.Key], url: VirtualPathUtility.ToAbsolute(string.Format("~/share/file/{0}", f.Key))));
+                return new JsonHelper.JsonNetResult(new { files = list.ToArray() }, JsonRequestBehavior.AllowGet);
+            }
+            else
+            {
+                return new JsonHelper.JsonNetResult(new { files = _tickets.GetFiles(m.CommunicationID.Value).ToArray() }, JsonRequestBehavior.AllowGet);
+            }
         }
+
+        [Authorize]
+        public ActionResult MyTickets()
+        {
+            var m = new TicketsViewModel { Tickets = _tickets.GetMyTickets() };
+            return View("Index", m);
+            
+        }
+
+        [Authorize]
+        public ActionResult Index()
+        {
+            return MyTickets();
+        }
+
+        [Authorize]
+        public ActionResult MyOpenTickets()
+        {
+            var m = new TicketsViewModel { Tickets = _tickets.GetSupportedTickets() };
+            return View("Index", m);
+
+        }
+
+        [Authorize]
+        public ActionResult AllTickets()
+        {
+            if (!Services.Authorizer.Authorize(Orchard.Security.StandardPermissions.AccessAdminPanel))
+                return new HttpUnauthorizedResult();
+            
+            var m = new TicketsViewModel { Tickets = _tickets.GetAllTickets() };
+            return View("Index", m);
+
+        }
+
 
     }
 }

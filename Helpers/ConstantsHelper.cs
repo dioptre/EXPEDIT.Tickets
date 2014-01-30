@@ -14,6 +14,7 @@ namespace EXPEDIT.Tickets.Helpers
         public static Guid WORK_TYPE_SUPPORT_REGARDING = new Guid("57ebd6b8-980f-4116-90f5-574765c9766d");
         public static Guid WORK_TYPE_SUPPORT_STATUS = new Guid("72e99319-3a7b-4338-8d97-856678fe7e31");
         public static Guid WORK_TYPE_SUPPORT = new Guid("37EADA26-1CCC-4BCF-AFA9-4AA0D5946615");
+        public static Guid WORK_TYPE_TICKET_CLOSED = new Guid("dfe87d2c-e577-4060-becb-ffbda6bee547");
         public static Guid COMPANY_DEFAULT = new Guid("6887ABC9-E2D8-4A2D-B143-6C3E5245C565");
         public static Guid ACCOUNT_TYPE_ONLINE = new Guid("5C329B8D-007D-435E-8261-4FA72D7DF28A");
         public static Guid DEVICE_TYPE_SOFTWARE = new Guid("3f526009-827a-41b0-a633-14b422bdf27f");

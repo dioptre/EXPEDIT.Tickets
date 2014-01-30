@@ -43,6 +43,9 @@ using System.Web.Mvc;
 
 using System.Web.Hosting;
 using Orchard.Environment.Configuration;
+using System.Dynamic;
+using ImpromptuInterface.Dynamic;
+using EntityFramework.Extensions;
 
 namespace EXPEDIT.Tickets.Services {
     
@@ -90,13 +93,14 @@ namespace EXPEDIT.Tickets.Services {
         public Localizer T { get; set; }
 
 
-        public void PrepareTicket(ref TicketsViewModel m)
+        public void PrepareTicket(ref TicketViewModel m)
         {
             if (m == null)
                 throw new Exception("Invalid Ticket Object");
             var supplier = _users.ApplicationCompanyID;
             var application = _users.ApplicationID;
             var contact = _users.GetContact(_users.Username);
+            m.OldComments = new List<Tuple<DateTime?, string>>();
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
                 var d = new XODBC(_users.ApplicationConnectionString, null);
@@ -116,7 +120,7 @@ namespace EXPEDIT.Tickets.Services {
                         if (string.IsNullOrWhiteSpace(m.CommunicationMobile))
                             m.CommunicationMobile = tx.CommunicationMobile;
                         if (string.IsNullOrWhiteSpace(m.Comment))
-                            m.Comment = tx.Comment;
+                            m.OldComments.Add(new Tuple<DateTime?,string>(tx.VersionUpdated,tx.Comment));
                     }
                     m.CommunicationEmailsAdditional = (from o in d.CommunicationEmails where o.Version == 0 && o.VersionDeletedBy == null && o.CommunicationID == id select o)
                         .ToDictionary((f) => f.CommunicationEmailID, (e) => new Tuple<Guid?, string>(e.ContactID.Value, e.CommunicationEmail));
@@ -128,7 +132,8 @@ namespace EXPEDIT.Tickets.Services {
                         var regarding = m.CommunicationRegardingData.FirstOrDefault();
                         m.RegardingID = string.Format("[{0}][{1}]", regarding.Value.ReferenceID, regarding.Value.TableType);
                     }
-                    m.OldComments = (from o in d.Communications where o.CommunicationID == id && o.Version != 0 && o.VersionDeletedBy == null select o.Comment).ToList();
+                    m.OldComments.AddRange((from o in d.Communications where o.CommunicationID == id && o.Version != 0 && o.VersionDeletedBy == null orderby o.Version descending select new { o.VersionUpdated, o.Comment }).AsEnumerable()
+                        .Select(f=>new Tuple<DateTime?,string>(f.VersionUpdated,f.Comment)));
                     m.OldFiles = (from o in d.FileDatas
                                   where o.Version == 0 && o.VersionDeletedBy == null && o.TableType == table && o.ReferenceID == id
                                   select new {o.FileDataID, o.FileName}).AsEnumerable().Select(f=>new Tuple<Guid, string>(f.FileDataID, f.FileName)).ToList();
@@ -144,7 +149,7 @@ namespace EXPEDIT.Tickets.Services {
                 
 
                 //Fill Select Lists
-                var allRegarding = (from o in d.E_SP_GetSupportItems(null, application, supplier, ConstantsHelper.DEVICE_TYPE_SOFTWARE, null, null, null)
+                var allRegarding = (from o in d.E_SP_GetSupportItems(null, application, null, ConstantsHelper.DEVICE_TYPE_SOFTWARE, null, null, null)
                            select new SelectListItem
                            {
                                Value = string.Format("[{0}][{1}]", o.ReferenceID, o.TableType),
@@ -183,7 +188,7 @@ namespace EXPEDIT.Tickets.Services {
 
 
 
-        public bool UpdateTicket(ref TicketsViewModel m)
+        public bool UpdateTicket(ref TicketViewModel m)
         {
             if (m == null)
                 return false;
@@ -253,6 +258,8 @@ namespace EXPEDIT.Tickets.Services {
                                        VersionOwnerContactID = contact.ContactID,
                                        VersionUpdatedBy = contact.ContactID
                                    }).FirstOrDefault();
+                    if (!c.MaintainedBy.HasValue)
+                        c.MaintainedBy = support.ContactID;
                     if (support != null && !d.CommunicationEmails.Any(
                         f => f.CommunicationID == id.Value
                             && (f.ContactID == support.ContactID || f.CommunicationEmail == support.CommunicationEmail)))
@@ -261,6 +268,25 @@ namespace EXPEDIT.Tickets.Services {
                     }
                 }
                 //Update Both
+                if (!c.VersionOwnerCompanyID.HasValue)
+                {
+                    var reference = d.CommunicationRegardingDatas.Where(f => f.CommunicationID == c.CommunicationID && f.TableType == tt && f.ReferenceID == refID).FirstOrDefault();
+                    if (reference != null)
+                    {
+                        var newOwnerCompany = (from o in d.E_SP_GetCompanyOwner(tt,refID) select o).FirstOrDefault();
+                        if (newOwnerCompany.HasValue)
+                        {
+                            c.VersionOwnerCompanyID = newOwnerCompany.Value;
+                            //Update files for owner too
+                            var table = d.GetTableName<Communication>();
+                            d.FileDatas.Update(t => 
+                                t.Version==0 && t.VersionDeletedBy==null 
+                                && t.ReferenceID == c.CommunicationID && t.TableType == table
+                                && t.VersionOwnerCompanyID == null
+                                , t => new FileData { VersionOwnerCompanyID = newOwnerCompany.Value });
+                        }
+                    }
+                }
                 if (c.CommunicationEmail != _users.Email)
                     c.CommunicationEmail = _users.Email;
                 if (c.Comment != m.Comment)
@@ -271,6 +297,8 @@ namespace EXPEDIT.Tickets.Services {
                     c.RegardingWorkTypeID = m.RegardingWorkTypeID;
                 if (c.StatusWorkTypeID != m.StatusWorkTypeID)
                     c.StatusWorkTypeID = m.StatusWorkTypeID;
+                if (c.StatusWorkTypeID == ConstantsHelper.WORK_TYPE_TICKET_CLOSED && !c.ClosedBy.HasValue)
+                    c.ClosedBy = contact.ContactID;
                 d.SaveChanges();
                 //Now fill email 'BCC/TO' list
                 recipients = d.CommunicationEmails.Where(f => f.CommunicationID == id && f.VersionDeletedBy == null && f.Version == 0).Select(f => f.CommunicationEmail)
@@ -286,7 +314,7 @@ namespace EXPEDIT.Tickets.Services {
       
 
 
-        public bool SubmitFile(TicketsViewModel m)
+        public bool SubmitFile(TicketViewModel m)
         {
             if (m.CommunicationID == default(Guid))
                 return false;
@@ -346,9 +374,65 @@ namespace EXPEDIT.Tickets.Services {
             }
 
             return true;
-
-
-
         }
+
+        public List<dynamic> GetFiles(Guid m)
+        {
+            using (new TransactionScope(TransactionScopeOption.Suppress))
+            {
+                var d = new XODBC(_users.ApplicationConnectionString, null);
+                var table = d.GetTableName<Communication>();
+                return (from o in d.FileDatas where o.Version==0 && o.VersionDeletedBy==null && o.TableType==table && o.ReferenceID==m select new { o.FileName, o.FileLength, o.FileDataID})
+                    .AsEnumerable()
+                    .Select(f=>Build<ExpandoObject>.NewObject(name: f.FileName, type: "application/octet", size: f.FileLength, url: VirtualPathUtility.ToAbsolute(string.Format("~/share/file/{0}", f.FileDataID))))
+                    .ToList();
+            }
+        }
+
+        private TicketViewModel[] getTickets(
+            string text = null, Guid? applicationID = null, 
+            Guid? ownerContactID = null, Guid? ownerCompanyID = null, Guid? regardingContactID = null, Guid? openedContactID = null, Guid? assignedContactID = null, Guid? maintainedContactID = null, Guid? closedContactID = null,
+            bool? openOnly = null,
+            int? startRowIndex = null, int? pageSize = null)
+        {
+            using (new TransactionScope(TransactionScopeOption.Suppress))
+            {
+                var d = new XODBC(_users.ApplicationConnectionString, null);
+                return (from o in d.E_SP_GetTickets(text, applicationID, ownerContactID, ownerCompanyID, regardingContactID, openedContactID, assignedContactID, maintainedContactID, closedContactID, openOnly, startRowIndex, pageSize)
+                        select new TicketViewModel
+                        {
+                            CommunicationID=o.CommunicationID,
+                            ContactName = o.ContactName,
+                            StatusName = o.TicketStatus,
+                            RegardingName = o.TicketRegarding,
+                            Comment = o.Comment,
+                            Updated = o.VersionUpdated,
+                            SubjectName = o.SubjectName,
+                            ProductName = o.ProductName,
+                            PagedRow = o.Row
+                        }).ToArray();
+            }
+        }
+
+        public TicketViewModel[] GetMyTickets()
+        {
+            var application = _users.ApplicationID;
+            var contact = _users.ContactID;
+            return getTickets(null, application, contact, null, null, null, null, null, null, true, null, null);
+        }
+
+        public TicketViewModel[] GetSupportedTickets()
+        {
+            var application = _users.ApplicationID;
+            var company = _users.DefaultContactCompanyID;
+            return getTickets(null, application, null, company, null, null, null, null, null, true, null, null);
+        }
+
+
+        public TicketViewModel[] GetAllTickets()
+        {
+            return getTickets();
+        }
+
     }
 }

@@ -13,12 +13,24 @@ namespace EXPEDIT.Tickets.Services
     public interface ITicketsService : IDependency 
     {               
          [OperationContract]
-         void PrepareTicket(ref TicketsViewModel m);
+         void PrepareTicket(ref TicketViewModel m);
 
          [OperationContract]
-         bool UpdateTicket(ref TicketsViewModel m);
+         bool UpdateTicket(ref TicketViewModel m);
 
          [OperationContract]
-         bool SubmitFile(TicketsViewModel m);
+         bool SubmitFile(TicketViewModel m);
+
+         [OperationContract]
+         List<dynamic> GetFiles(Guid m);
+
+         [OperationContract]
+         TicketViewModel[] GetMyTickets();
+
+         [OperationContract]
+         TicketViewModel[] GetSupportedTickets();
+
+         [OperationContract]
+         TicketViewModel[] GetAllTickets();
     }
 }
