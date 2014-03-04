@@ -30,7 +30,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;XODB</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NKD</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
@@ -133,9 +133,13 @@
     <Content Include="Module.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\XODB.Module.BusinessObjects\XODB.Module.BusinessObjects.csproj">
+    <ProjectReference Include="..\..\..\..\..\NKD.Extensions\NKD.Extensions.csproj">
+      <Project>{d52e5735-cd85-4a8d-a0c2-fb84ddbd222b}</Project>
+      <Name>NKD.Extensions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\NKD.Module.BusinessObjects\NKD.Module.BusinessObjects.csproj">
       <Project>{380151d5-c92f-404a-8b89-b788f574d228}</Project>
-      <Name>XODB.Module.BusinessObjects</Name>
+      <Name>NKD.Module.BusinessObjects</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Orchard\Orchard.Framework.csproj">
       <Project>{2D1D92BB-4555-4CBE-8D0E-63563D6CE4C6}</Project>
@@ -144,6 +148,10 @@
     <ProjectReference Include="..\..\Core\Orchard.Core.csproj">
       <Project>{9916839C-39FC-4CEB-A5AF-89CA7E87119F}</Project>
       <Name>Orchard.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NKD\NKD.csproj">
+      <Project>{1b5a2a6b-28e0-4a54-9ca4-147c925f3bbb}</Project>
+      <Name>NKD</Name>
     </ProjectReference>
     <ProjectReference Include="..\Orchard.Email\Orchard.Email.csproj">
       <Project>{05660f47-d649-48bd-9ded-df4e01e7cff9}</Project>
@@ -160,10 +168,6 @@
     <ProjectReference Include="..\Orchard.Users\Orchard.Users.csproj">
       <Project>{79aed36e-abd0-4747-93d3-8722b042454b}</Project>
       <Name>Orchard.Users</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\XODB\XODB.csproj">
-      <Project>{1b5a2a6b-28e0-4a54-9ca4-147c925f3bbb}</Project>
-      <Name>XODB</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

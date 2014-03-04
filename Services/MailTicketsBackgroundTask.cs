@@ -5,13 +5,13 @@ using Orchard;
 using Orchard.Localization;
 using Orchard.ContentManagement;
 using Orchard.Services;
-using XODB.Models;
+using NKD.Models;
 using System.Linq;
 using Orchard.Data;
 using Orchard.ContentManagement.Handlers;
 using Orchard.Caching;
 using System;
-using XODB.Services;
+using NKD.Services;
 
 namespace EXPEDIT.Tickets.Services
 {

@@ -18,18 +18,18 @@ using Orchard.Messaging.Services;
 using Orchard.Logging;
 using Orchard.Tasks.Scheduling;
 using Orchard.Data;
-#if XODB
-using XODB.Module.BusinessObjects;
+#if NKD
+using NKD.Module.BusinessObjects;
 #else
 using EXPEDIT.Utils.DAL.Models;
 #endif
-using XODB.Services;
+using NKD.Services;
 using Orchard.Media.Services;
 using EXPEDIT.Tickets.ViewModels;
 using EXPEDIT.Tickets.Helpers;
 using Orchard.DisplayManagement;
 using ImpromptuInterface;
-using XODB.Models;
+using NKD.Models;
 
 using LumiSoft.Net.Log;
 using LumiSoft.Net.MIME;
@@ -38,7 +38,8 @@ using LumiSoft.Net.IMAP;
 using LumiSoft.Net.IMAP.Client;
 using LumiSoft.Net;
 using System.Threading;
-using XODB.Helpers;
+using NKD.Helpers;
+
 using System.Web.Mvc;
 
 using System.Web.Hosting;
@@ -103,7 +104,7 @@ namespace EXPEDIT.Tickets.Services {
             m.OldComments = new List<Tuple<DateTime?, string>>();
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
-                var d = new XODBC(_users.ApplicationConnectionString, null);
+                var d = new NKDC(_users.ApplicationConnectionString, null);
                 var table = d.GetTableName<Communication>();
                 if (m.CommunicationID.HasValue)
                 {
@@ -203,7 +204,7 @@ namespace EXPEDIT.Tickets.Services {
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
 
-                var d = new XODBC(_users.ApplicationConnectionString, null);
+                var d = new NKDC(_users.ApplicationConnectionString, null);
                 var c = d.Communications.Where<Communication>((f) => f.Version == 0 && f.VersionDeletedBy == null && f.CommunicationID == id).Select(f => f).FirstOrDefault();
                 if (c == null)
                 {
@@ -322,7 +323,7 @@ namespace EXPEDIT.Tickets.Services {
             var contact = _users.ContactID;
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
-                var d = new XODBC(_users.ApplicationConnectionString, null);
+                var d = new NKDC(_users.ApplicationConnectionString, null);
                 //First check if any data is not owned by me
                 if ((from o in d.FileDatas where o.ReferenceID == m.CommunicationID && o.VersionOwnerContactID != contact.Value select o).Any())
                     return false;
@@ -381,7 +382,7 @@ namespace EXPEDIT.Tickets.Services {
         {
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
-                var d = new XODBC(_users.ApplicationConnectionString, null);
+                var d = new NKDC(_users.ApplicationConnectionString, null);
                 var table = d.GetTableName<Communication>();
                 return (from o in d.FileDatas where o.Version==0 && o.VersionDeletedBy==null && o.TableType==table && o.ReferenceID==m select new { o.FileName, o.FileLength, o.FileDataID})
                     .AsEnumerable()
@@ -398,7 +399,7 @@ namespace EXPEDIT.Tickets.Services {
         {
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
-                var d = new XODBC(_users.ApplicationConnectionString, null);
+                var d = new NKDC(_users.ApplicationConnectionString, null);
                 return (from o in d.E_SP_GetTickets(text, applicationID, ownerContactID, ownerCompanyID, regardingContactID, openedContactID, assignedContactID, maintainedContactID, closedContactID, openOnly, startRowIndex, pageSize)
                         select new TicketViewModel
                         {

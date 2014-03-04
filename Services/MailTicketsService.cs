@@ -18,18 +18,18 @@ using Orchard.Messaging.Services;
 using Orchard.Logging;
 using Orchard.Tasks.Scheduling;
 using Orchard.Data;
-#if XODB
-using XODB.Module.BusinessObjects;
+#if NKD
+using NKD.Module.BusinessObjects;
 #else
 using EXPEDIT.Utils.DAL.Models;
 #endif
-using XODB.Services;
+using NKD.Services;
 using Orchard.Media.Services;
 using EXPEDIT.Tickets.ViewModels;
 using EXPEDIT.Tickets.Helpers;
 using Orchard.DisplayManagement;
 using ImpromptuInterface;
-using XODB.Models;
+using NKD.Models;
 
 using LumiSoft.Net.Log;
 using LumiSoft.Net.MIME;
@@ -38,7 +38,8 @@ using LumiSoft.Net.IMAP;
 using LumiSoft.Net.IMAP.Client;
 using LumiSoft.Net;
 using System.Threading;
-using XODB.Helpers;
+using NKD.Helpers;
+
 using System.Web.Mvc;
 
 using System.Web.Hosting;
@@ -233,7 +234,7 @@ namespace EXPEDIT.Tickets.Services
                                             string[] recipients = new string[] { };
                                             using (new TransactionScope(TransactionScopeOption.Suppress))
                                             {
-                                                var d = new XODBC(_users.ApplicationConnectionString, null);
+                                                var d = new NKDC(_users.ApplicationConnectionString, null);
 
                                                 //--Despatch to new Ticket and delete--
                                                 //to help -> new ticket

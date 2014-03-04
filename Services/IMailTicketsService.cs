@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Web;
 using Orchard;
-using XODB.Module.BusinessObjects;
-using XODB.Models;
+using NKD.Module.BusinessObjects;
+using NKD.Models;
 using System.ServiceModel;
 using EXPEDIT.Tickets.Models;
 
