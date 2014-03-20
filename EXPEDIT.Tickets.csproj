@@ -149,6 +149,10 @@
       <Project>{9916839C-39FC-4CEB-A5AF-89CA7E87119F}</Project>
       <Name>Orchard.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\EXPEDIT.Share\EXPEDIT.Share.csproj">
+      <Project>{224cf035-3491-449e-8dcb-d26797ea10e9}</Project>
+      <Name>EXPEDIT.Share</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NKD\NKD.csproj">
       <Project>{1b5a2a6b-28e0-4a54-9ca4-147c925f3bbb}</Project>
       <Name>NKD</Name>
@@ -173,7 +177,6 @@
   <ItemGroup>
     <Compile Include="Controllers\UserController.cs" />
     <Compile Include="Handlers\MailTicketHandler.cs" />
-    <Compile Include="Helpers\ConstantsHelper.cs" />
     <Compile Include="Migrations.cs" />
     <Compile Include="Models\MailTicketPart.cs" />
     <Compile Include="Route.cs" />
@@ -185,7 +188,9 @@
     <Compile Include="ViewModels\TicketViewModel.cs" />
     <Compile Include="ViewModels\TicketsViewModel.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Helpers\" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="Views\User\Index.cshtml" />
   </ItemGroup>

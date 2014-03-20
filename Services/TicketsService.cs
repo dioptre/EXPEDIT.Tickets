@@ -22,7 +22,7 @@ using NKD.Module.BusinessObjects;
 using NKD.Services;
 using Orchard.Media.Services;
 using EXPEDIT.Tickets.ViewModels;
-using EXPEDIT.Tickets.Helpers;
+using EXPEDIT.Share.Helpers;
 using Orchard.DisplayManagement;
 using ImpromptuInterface;
 using NKD.Models;
