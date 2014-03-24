@@ -12,7 +12,8 @@ namespace EXPEDIT.Tickets.ViewModels
     {
         [JsonIgnore]
         public TicketViewModel[] Tickets { get; set; }
-        
+        public int? PageSize { get; set; }
+        public int? Offset { get; set; }
     }
     
 }

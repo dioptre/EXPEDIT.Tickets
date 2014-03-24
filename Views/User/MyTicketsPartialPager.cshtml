@@ -1,0 +1,25 @@
+﻿@model EXPEDIT.Tickets.ViewModels.TicketsViewModel
+<div id="MyTicketsPartialPagerPage">
+    @Html.Partial("MyTicketsPartial", Model)
+</div>
+<ul class="pager">
+  <li><a href="#" id="MyTicketsPartialPagerPrevious">Previous</a></li>
+  <li><a href="#" id="MyTicketsPartialPagerNext">Next</a></li>
+</ul>
+<script>
+    $.ajaxSetup ({
+        cache: false
+    });
+    var pageSizeMyTicketsPartial = @Model.PageSize;
+    var offsetMyTicketsPartial = @Model.Offset;
+    $("#MyTicketsPartialPagerNext").click(function () {
+        offsetMyTicketsPartial+=pageSizeMyTicketsPartial;
+        $("#MyTicketsPartialPagerPage").load('/tickets/user/myticketspartial/' + pageSizeMyTicketsPartial + '/' + offsetMyTicketsPartial );
+    });
+    $("#MyTicketsPartialPagerPrevious").click(function () {
+        if (offsetMyTicketsPartial < 2)
+            return;
+        offsetMyTicketsPartial-=pageSizeMyTicketsPartial;
+        $("#MyTicketsPartialPagerPage").load('/tickets/user/myticketspartial/' + pageSizeMyTicketsPartial + '/' + offsetMyTicketsPartial );
+    });
+    </script>

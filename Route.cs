@@ -37,6 +37,23 @@ namespace EXPEDIT.Tickets
                  new RouteDescriptor {
                     Priority = 5,
                     Route = new Route(
+                        "Tickets/{controller}/{action}/{pageSize}/{offset}",
+                        new RouteValueDictionary {
+                            {"area", "EXPEDIT.Tickets"},
+                            {"controller", "User"}                            
+                        },
+                        new RouteValueDictionary {
+                            {"area", "EXPEDIT.Tickets"},
+                            {"controller", "User"},                          
+                        },
+                        new RouteValueDictionary {
+                            {"area", "EXPEDIT.Tickets"},                            
+                        },
+                        new MvcRouteHandler())
+                },
+                 new RouteDescriptor {
+                    Priority = 5,
+                    Route = new Route(
                         "Tickets/{action}/{id}/{name}/{contactid}",
                         new RouteValueDictionary {
                             {"area", "EXPEDIT.Tickets"},

@@ -25,12 +25,12 @@ namespace EXPEDIT.Tickets.Services
          List<dynamic> GetFiles(Guid m);
 
          [OperationContract]
-         TicketViewModel[] GetMyTickets();
+         TicketViewModel[] GetMyTickets(int? pageSize = default(int?), int? offset = default(int?));
 
          [OperationContract]
-         TicketViewModel[] GetSupportedTickets();
+         TicketViewModel[] GetSupportedTickets(int? pageSize = default(int?), int? offset = default(int?));
 
          [OperationContract]
-         TicketViewModel[] GetAllTickets();
+         TicketViewModel[] GetAllTickets(int? pageSize = default(int?), int? offset = default(int?));
     }
 }

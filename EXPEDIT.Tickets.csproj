@@ -200,6 +200,12 @@
   <ItemGroup>
     <Content Include="Views\User\Header.cshtml" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\User\MyTicketsPartial.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\User\MyTicketsPartialPager.cshtml" />
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

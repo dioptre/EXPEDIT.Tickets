@@ -412,24 +412,24 @@ namespace EXPEDIT.Tickets.Services {
             }
         }
 
-        public TicketViewModel[] GetMyTickets()
+        public TicketViewModel[] GetMyTickets(int? pageSize = default(int?), int? offset = default(int?))
         {
             var application = _users.ApplicationID;
             var contact = _users.ContactID;
-            return getTickets(null, application, contact, null, null, null, null, null, null, true, null, null);
+            return getTickets(null, application, contact, null, null, null, null, null, null, true, offset, pageSize);
         }
 
-        public TicketViewModel[] GetSupportedTickets()
+        public TicketViewModel[] GetSupportedTickets(int? pageSize = default(int?), int? offset = default(int?))
         {
             var application = _users.ApplicationID;
             var company = _users.DefaultContactCompanyID;
-            return getTickets(null, application, null, company, null, null, null, null, null, true, null, null);
+            return getTickets(null, application, null, company, null, null, null, null, null, true, offset, pageSize);
         }
 
 
-        public TicketViewModel[] GetAllTickets()
+        public TicketViewModel[] GetAllTickets(int? pageSize = default(int?), int? offset = default(int?))
         {
-            return getTickets();
+            return getTickets(null, null, null, null, null, null, null, null, null, null, offset, pageSize);
         }
 
     }

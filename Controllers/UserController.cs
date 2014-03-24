@@ -317,6 +317,28 @@ namespace EXPEDIT.Tickets.Controllers {
 
         }
 
+        [Themed(Enabled=false)]
+        [Authorize]
+        public ActionResult MyTicketsPartial(TicketsViewModel m)
+        {
+            if (!m.PageSize.HasValue || m.PageSize > 20)
+                m.PageSize= 20;
+            if (!m.Offset.HasValue || m.Offset< 1)
+                m.Offset = 1;
+            m.Tickets = _tickets.GetMyTickets(m.PageSize, m.Offset);
+            return View(m);
+
+        }
+
+        [Themed(Enabled = false)]
+        [Authorize]
+        public ActionResult MyTicketsPartialPager(int? pageSize, int? offset)
+        {
+            var m = new TicketsViewModel { Tickets = _tickets.GetMyTickets(pageSize, offset), PageSize = pageSize, Offset = offset };
+            return View(m);
+
+        }        
+
         [Authorize]
         public ActionResult AllTickets()
         {
