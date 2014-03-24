@@ -10,7 +10,7 @@
 <td>
 <h4>&#35;@p.PagedRow @p.ContactName @p.RegardingName @(p.ProductName ?? p.SubjectName) <small>@p.StatusName</small></h4>
 <p>@Html.Raw(p.Comment)...</p>
-<p>@(@p.Updated != null ? "<strong>Last Updated: " + @p.Updated +"</strong>" : null)<a style="float:right;" class="btn btn-small" href="@Url.Action("updateticket", new { area="EXPEDIT.Tickets", controller="User", id=p.CommunicationID})">open</a></p>
+<p>@(@p.Updated != null ? "<strong>Last Updated: " + @p.Updated +"</strong>" : null)<a style="float:right;" class="btn btn-small" href="@Url.Action("updateticket", new { area="EXPEDIT.Tickets", controller="User", id=p.CommunicationID})"><i class="glyphicon icon-pencil"></i>&nbsp;open</a></p>
 </td>
 </tr>
 }
