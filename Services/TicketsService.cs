@@ -53,9 +53,6 @@ namespace EXPEDIT.Tickets.Services {
       
 
         private readonly IOrchardServices _orchardServices;
-        private readonly IContentManager _contentManager;
-        private readonly IMessageManager _messageManager;
-        private readonly IScheduledTaskManager _taskManager;
         private readonly IUsersService _users;
         private readonly IMediaService _media;
         private readonly IMailApiService _mailApi;
@@ -64,10 +61,7 @@ namespace EXPEDIT.Tickets.Services {
         public ILogger Logger { get; set; }
 
         public TicketsService(
-            IContentManager contentManager, 
             IOrchardServices orchardServices, 
-            IMessageManager messageManager, 
-            IScheduledTaskManager taskManager, 
             IUsersService users, 
             IMediaService media,
             IMailApiService mailApi,
@@ -75,9 +69,6 @@ namespace EXPEDIT.Tickets.Services {
             IStorageProvider storage)
         {
             _orchardServices = orchardServices;
-            _contentManager = contentManager;
-            _messageManager = messageManager;
-            _taskManager = taskManager;
             _media = media;
             _users = users;
             _mailApi = mailApi;
