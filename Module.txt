@@ -9,6 +9,6 @@ Category: Business
 Features:
     EXPEDIT.Tickets: 
         Description: Tickets web module by EXPEDIT.
-		Dependencies: Orchard.Email,NKD,Orchard.Media,XmlRpc,Orchard.Search,EXPEDIT.Share
+		Dependencies: NKD,EXPEDIT.Share,Orchard.Email,Orchard.MediaLibrary
 		Category: Business
 		Priority: 10

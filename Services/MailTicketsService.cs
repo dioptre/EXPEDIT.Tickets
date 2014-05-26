@@ -20,7 +20,6 @@ using Orchard.Tasks.Scheduling;
 using Orchard.Data;
 using NKD.Module.BusinessObjects;
 using NKD.Services;
-using Orchard.Media.Services;
 using EXPEDIT.Tickets.ViewModels;
 using EXPEDIT.Share.Helpers;
 using Orchard.DisplayManagement;

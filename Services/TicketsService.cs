@@ -20,7 +20,7 @@ using Orchard.Tasks.Scheduling;
 using Orchard.Data;
 using NKD.Module.BusinessObjects;
 using NKD.Services;
-using Orchard.Media.Services;
+using Orchard.MediaLibrary.Services;
 using EXPEDIT.Tickets.ViewModels;
 using EXPEDIT.Share.Helpers;
 using Orchard.DisplayManagement;
@@ -54,7 +54,7 @@ namespace EXPEDIT.Tickets.Services {
 
         private readonly IOrchardServices _orchardServices;
         private readonly IUsersService _users;
-        private readonly IMediaService _media;
+        private readonly IMediaLibraryService _media;
         private readonly IMailApiService _mailApi;
         private ShellSettings _settings;
         private readonly IStorageProvider _storage;
@@ -63,7 +63,7 @@ namespace EXPEDIT.Tickets.Services {
         public TicketsService(
             IOrchardServices orchardServices, 
             IUsersService users, 
-            IMediaService media,
+            IMediaLibraryService media,
             IMailApiService mailApi,
             ShellSettings settings,
             IStorageProvider storage)
